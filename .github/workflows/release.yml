@@ -24,18 +24,27 @@ jobs:
           node-version: 20
 
       - name: Install Semantic Release
-        run: npm install -g semantic-release @semantic-release/changelog @semantic-release/github @semantic-release/exec @semantic-release/commit-analyzer @semantic-release/release-notes-generator
+        run: npm install -g semantic-release @semantic-release/changelog @semantic-release/github @semantic-release/exec @semantic-release/commit-analyzer @semantic-release/release-notes-generator @semantic-release/git
 
+      - name: Configure Git user for bot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # 🔹 Esegue semantic-release per pubblicare la release
       - name: Run Semantic Release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
 
-      - name: Configure Git user for bot
+      # 🔹 Recupera la versione attuale dal dry-run di semantic-release
+      - name: Get release version
+        id: version
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION=$(npx semantic-release --dry-run | grep "The next release version is" | awk '{print $6}' || echo "latest")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Detected version: $VERSION"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -49,12 +58,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 🔹 Build multi-arch sempre, con fallback a "latest"
       - name: Build and Push multi-arch image
         run: |
-          VERSION=${{ steps.semantic.outputs.new_release_version }}
+          VERSION=${VERSION:-latest}
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/docker-surgeon
+          echo "🚀 Building image: $IMAGE_NAME:$VERSION"
 
-          # Costruisci e push multi-arch
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             -t $IMAGE_NAME:$VERSION \
