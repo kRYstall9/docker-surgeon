@@ -93,15 +93,13 @@ def build_dependency_graph(client: DockerClient, restart_policy:any, logger:Logg
     all_containers = client.containers.list(all=True)
 
     for container in all_containers:
-        
-        if _canBeRestarted(container, restart_policy, logger):
-            depends_on = container.labels.get(LABEL_NAME)
-            if depends_on:
-                parents = [name.strip() for name in depends_on.split(",")]
-                for parent in parents:
-                    if parent not in graph:
-                        graph[parent] = []
-                    graph[parent].append(container.name)
+        depends_on = container.labels.get(LABEL_NAME)
+        if depends_on:
+            parents = [name.strip() for name in depends_on.split(",")]
+            for parent in parents:
+                if parent not in graph:
+                    graph[parent] = []
+                graph[parent].append(container.name)
 
     return graph
 
@@ -136,7 +134,9 @@ def restart_with_graph(client: DockerClient, unhealthy_container, already_proces
 
     for container_name in sorted_container_names:
         parents = [parent for parent, children in graph.items() if container_name in children]
-        if any(parent in relevant for parent in parents):
+        ct = client.containers.get(container_name)
+
+        if any(parent in relevant for parent in parents) and _canBeRestarted(ct, restart_policy, logger, True):
             to_restart.append(container_name)
             relevant.add(container_name)
 
@@ -168,7 +168,7 @@ def _getContainerStatusAndExitCode(container):
 
     return {"healthStatus": container_health_status, "exitCode": container_exit_code, "realStatus": container_real_status}
 
-def _canBeRestarted(container, restart_policy:any, logger: Logger) -> bool:
+def _canBeRestarted(container, restart_policy:any, logger: Logger, checkOnChildren:bool = False) -> bool:
     
     if container.name in restart_policy.get("excludedContainers", []):
         logger.debug(f"{container.name} won't be restarted due to the restart policy")
@@ -184,6 +184,8 @@ def _canBeRestarted(container, restart_policy:any, logger: Logger) -> bool:
     policy = restart_policy["statuses"].get(container_status, {}) or restart_policy["statuses"].get(container_real_status, {})
     
     if not policy:
+        if checkOnChildren:
+            return True
         return False
     
     excluded_exit_codes = policy.get("codesToExclude", [])
@@ -192,7 +194,7 @@ def _canBeRestarted(container, restart_policy:any, logger: Logger) -> bool:
     
     isContainerUnhealthy: bool = container_real_status == "running" and container_status == "unhealthy"
     
-    if isContainerUnhealthy or (container_real_status == "exited" and container_exit_code not in excluded_exit_codes):
+    if isContainerUnhealthy or (container_real_status == "exited" and container_exit_code not in excluded_exit_codes) or checkOnChildren:
         logger.debug(f"{container.name} will be restarted soon")
         return True 
     
