@@ -8,8 +8,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo ${nextRelease.version} > VERSION",
-        "publishCmd": "./scripts/publish-docker.sh ${nextRelease.version}"
+        "prepareCmd": "echo ${nextRelease.version} > VERSION"
       }
     ]
   ]
