@@ -228,7 +228,9 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
     
     policy = restart_policy["statuses"].get(container_status, {}) or restart_policy["statuses"].get(container_real_status, {})
     
-    if not policy:
+    isContainerUnhealthy: bool = container_real_status == "running" and container_status == "unhealthy"
+    
+    if not policy and not isContainerUnhealthy:
         if checkOnChildren:
             return True
         logger.debug(f"No policy found. Container {container.name} won't be restarted")
@@ -237,8 +239,6 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
     excluded_exit_codes = policy.get("codesToExclude", [])
     
     logger.debug(f"POLICY EXCLUDED EXIT CODES: {excluded_exit_codes}")
-    
-    isContainerUnhealthy: bool = container_real_status == "running" and container_status == "unhealthy"
     
     # Container has to pass any of these checks to be restarted:
     # 1) Container is unhealthy
