@@ -6,6 +6,7 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+COPY app/ ./app
 COPY main.py .
 COPY requirements.txt .
 
