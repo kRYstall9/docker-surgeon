@@ -19,7 +19,7 @@ def get_logger(config:Config, name:str = __name__) -> Logger:
     logger.setLevel(config.log_level)
     logger.propagate = False
     
-    if not logger.handlers():
+    if not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - Func: %(funcName)s - [MSG]: %(message)s')
         formatter.converter = time_in_tz
