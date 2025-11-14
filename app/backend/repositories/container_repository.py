@@ -30,7 +30,6 @@ class ContainerRepository:
             if containers_to_add:
                 db.add_all(containers_to_add)
                 db.commit()
-                db.refresh_all(containers_to_add)
                 logger.info(f"Containers added: {[container.containername for container in containers_to_add]}")
             else:
                 logger.info("No new containers to add (all already present)")
