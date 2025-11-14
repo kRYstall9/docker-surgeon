@@ -1,6 +1,6 @@
 from logging import Logger
 from app.backend.core.database import SessionLocal
-from app.backend.schemas.container_schema import ContainerCreate
+from app.backend.schemas.container_schema import ContainerBase
 from app.backend.models.container import Container
 from typing import List
 
@@ -12,7 +12,7 @@ class ContainerRepository:
             return db.query(Container).order_by(Container.containername.desc()).all()
 
     @staticmethod
-    def add_containers(containers: List[ContainerCreate], logger:Logger):
+    def add_containers(containers: List[ContainerBase], logger:Logger):
         with SessionLocal() as db:
             containers_to_add = []
             
