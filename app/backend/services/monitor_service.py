@@ -1,12 +1,12 @@
 from docker import DockerClient, from_env
-from app.core.config import Config
+from app.backend.core.config import Config
 from logging import Logger
 from datetime import datetime
 from time import sleep
-from app.schemas.container_schema import ContainerCreate
-from app.schemas.crashed_container_schema import CrashedContainerBase
-from app.repositories.container_repository import ContainerRepository
-from app.repositories.crashed_container_repository import CrashedContainerRepository
+from app.backend.schemas.container_schema import ContainerCreate
+from app.backend.schemas.crashed_container_schema import CrashedContainerBase
+from app.backend.repositories.container_repository import ContainerRepository
+from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
 
 
 ############

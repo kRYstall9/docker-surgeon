@@ -4,7 +4,7 @@ WORKDIR /dashboard
 COPY  app/dashboard/package.json app/dashboard/package-lock.json ./
 RUN npm install
 
-COPY dashboard/ ./
+COPY /app/dashboard/ ./
 RUN npm run build
 
 

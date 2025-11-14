@@ -9,8 +9,8 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def init_db(logger:Logger):
-    from app.models.container import Container
-    from app.models.crashed_container import CrashedContainer
+    from app.backend.models.container import Container
+    from app.backend.models.crashed_container import CrashedContainer
     
     Base.metadata.create_all(engine)
     

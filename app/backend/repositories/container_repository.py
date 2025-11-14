@@ -1,7 +1,7 @@
 from logging import Logger
-from app.core.database import SessionLocal
-from app.schemas.container_schema import ContainerCreate
-from app.models.container import Container
+from app.backend.core.database import SessionLocal
+from app.backend.schemas.container_schema import ContainerCreate
+from app.backend.models.container import Container
 from typing import List
 
 class ContainerRepository:

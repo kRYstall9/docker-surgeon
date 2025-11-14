@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from app.backend.core.database import Base
 
 
 class CrashedContainer(Base):

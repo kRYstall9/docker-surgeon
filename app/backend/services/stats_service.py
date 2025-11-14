@@ -1,5 +1,5 @@
 from datetime import datetime
-from app.repositories.crashed_container_repository import CrashedContainerRepository
+from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
 
 class StatsService:
      

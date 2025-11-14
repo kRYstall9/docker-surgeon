@@ -1,8 +1,8 @@
 from logging import Logger
-from app.core.database import SessionLocal
-from app.schemas.user_schema import User as UserSchema
-from app.models.user import User
-from app.models.container import Container
+from app.backend.core.database import SessionLocal
+from app.backend.schemas.user_schema import User as UserSchema
+from app.backend.models.user import User
+from app.backend.models.container import Container
 from typing import List
 
 class UserRepository:

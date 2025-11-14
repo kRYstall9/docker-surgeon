@@ -2,11 +2,11 @@ from datetime import datetime
 from logging import Logger
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_, func
-from app.core.database import SessionLocal
-from app.schemas.crashed_container_schema import CrashedContainerBase, CrashedContainerLogs
-from app.models.container import Container
-from app.models.crashed_container import CrashedContainer
-from app.schemas.graph_stats_schema import GraphStats
+from app.backend.core.database import SessionLocal
+from app.backend.schemas.crashed_container_schema import CrashedContainerBase, CrashedContainerLogs
+from app.backend.models.container import Container
+from app.backend.models.crashed_container import CrashedContainer
+from app.backend.schemas.graph_stats_schema import GraphStats
 
 
 class CrashedContainerRepository:
