@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {Line} from 'react-chartjs-2';
 import type { CrashedContainerLogs } from "../../models/crashedContainer";
 import { getCrashedContainersMetrics } from "../../api/crashedContainers";
-import { build } from "vite";
 
 export function Homepage() {
     ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
