@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field
 class CrashedContainerBase(BaseModel):
     container_id:str
     container_name:str
+    logs:str
     
 class CrashedContainerLogs(CrashedContainerBase):
-    logs:str
     crashed_on:datetime
     
 class CrashedContainerStats(CrashedContainerBase):

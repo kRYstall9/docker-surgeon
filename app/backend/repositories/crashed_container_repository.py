@@ -14,7 +14,7 @@ class CrashedContainerRepository:
     @staticmethod
     def add_crashed_container(ct_crashed:CrashedContainerBase, logger:Logger):
         with SessionLocal() as db:
-            container = db.query(Container).filter(Container.containerid == ct_crashed.containerid).first()
+            container = db.query(Container).filter(Container.containerid == ct_crashed.container_id).first()
         
             crashed_container = CrashedContainer(
                 logs = ct_crashed.logs,
@@ -26,7 +26,7 @@ class CrashedContainerRepository:
             db.commit()
             db.refresh(crashed_container)
             
-            logger.info(f"Container {ct_crashed.containerid} added to the crashed containers table")
+            logger.info(f"Container {ct_crashed.container_id} added to the crashed containers table")
 
             return crashed_container
 

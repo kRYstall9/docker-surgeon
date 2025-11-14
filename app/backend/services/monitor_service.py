@@ -53,7 +53,7 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
                 container_exit_code = containerStatusAndExitCode["exitCode"]
                 
                 logger.info(f"Container: {container_object.name} | Status: {container_health_status} | Exit Code: {container_exit_code}. The container will be restarted including all its dependent containers")
-                crashed_container = CrashedContainerBase(containerid=container_object.id, logs=container_object.logs(tail=logs_amount))
+                crashed_container = CrashedContainerBase(container_id=container_object.id, logs=container_object.logs(tail=logs_amount))
                 CrashedContainerRepository.add_crashed_container(crashed_container, logger)
                 _restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger)
 
