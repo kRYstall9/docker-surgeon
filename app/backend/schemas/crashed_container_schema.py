@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 class CrashedContainerBase(BaseModel):
     container_id:str
-    container_name:str
+    container_name: str | None = None
     logs:str
     
 class CrashedContainerLogs(CrashedContainerBase):
