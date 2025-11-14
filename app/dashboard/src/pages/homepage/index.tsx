@@ -1,9 +1,48 @@
 import { Navbar } from "../../components/navbar/navbar";
 import {Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend} from 'chart.js';
+import { useEffect, useState } from "react";
 import {Line} from 'react-chartjs-2';
+import type { CrashedContainerLogs } from "../../models/crashedContainer";
+import { getCrashedContainersMetrics } from "../../api/crashedContainers";
+import { build } from "vite";
 
 export function Homepage() {
     ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+
+    const [stats, setStats] = useState<CrashedContainerLogs[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const today = new Date().toISOString().split("T")[0];
+
+        getCrashedContainersMetrics(today)
+            .then((data) => {
+                setStats(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("API error:", err);
+                setLoading(false);
+            });
+    }, []);
+
+    const buildMetricsSection = () => {
+        const uniqueCrashedContainers = Object.values(stats.reduce((acc,item) => {
+            if(!acc[item.container_id]){
+                acc[item.container_id] = {...item};
+            }
+            else{
+                acc[item.container_id].logs += `\n\n${item.logs}`;
+            }
+
+            return acc;
+        }, {} as Record<string, CrashedContainerLogs>));
+
+        return uniqueCrashedContainers;
+    }
+
+    const uniqueCrashedContainers = buildMetricsSection();
 
     const options = {
         responsive: true,
@@ -57,14 +96,21 @@ export function Homepage() {
 
                 <div className="col-span-1 flex justify-center items-start">
                     <div className="w-full sm:w-[80%]  max-h-[50vh] flex flex-col gap-3 p-2 sm:p-4 rounded-md sm:rounded-xl overflow-x-auto overflow-y-auto bg-[#242424]">
-                        {Array.from({ length: 15 }).map((_, i) => (
-                            <button
-                            key={i}
-                            className="w-full bg-gray-600 hover:bg-gray-700 sm:py-2 rounded-md text-white cursor-pointer"
-                            >
-                            Cont {i + 1}
-                            </button>
-                        ))}
+                        {
+                            loading ?
+                            (<p>Loading</p>)
+                            :
+                            (uniqueCrashedContainers.map((cont) => {
+                                return (
+                                    <button
+                                    key={cont.container_id}
+                                    className="w-full bg-gray-600 hover:bg-gray-700 sm:py-2 rounded-md text-white cursor-pointer"
+                                    >
+                                    {cont.container_name}
+                                    </button>
+                                );
+                            }))
+                        }
                     </div>
                 </div>
 
