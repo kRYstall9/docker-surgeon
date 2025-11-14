@@ -1,3 +1,13 @@
+FROM node:22-slim AS  dashboard_builder
+
+WORKDIR /dashboard
+COPY  app/dashboard/package.json app/dashboard/package-lock.json ./
+RUN npm install
+
+COPY dashboard/ ./
+RUN npm run build
+
+
 FROM python:3.13-slim
 
 RUN apt-get update && \
@@ -10,6 +20,10 @@ COPY app/ ./app
 COPY main.py .
 COPY requirements.txt .
 
+COPY --from=dashboard_builder /dashboard/dist ./app/dashboard_build
+
 RUN pip install --no-cache-dir -r requirements.txt
+
+
 
 CMD ["python", "main.py"]

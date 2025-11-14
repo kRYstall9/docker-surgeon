@@ -1,9 +1,12 @@
 from docker import DockerClient, from_env
-from app.utils.config import Config
+from app.core.config import Config
 from logging import Logger
 from datetime import datetime
 from time import sleep
-from app.DAL.repositories import add_containers, add_crashed_container
+from app.schemas.container_schema import ContainerCreate
+from app.schemas.crashed_container_schema import CrashedContainerBase
+from app.repositories.container_repository import ContainerRepository
+from app.repositories.crashed_container_repository import CrashedContainerRepository
 
 
 ############
@@ -21,7 +24,8 @@ def monitor_containers(config:Config, logger:Logger):
     
     try:
         containers = client.containers.list(True)
-        add_containers([(container.name, container.id) for container in containers], logger)
+        container_create_list = [ContainerCreate(name=container.name, cid=container.id) for container in containers]
+        ContainerRepository.add_containers(container_create_list, logger)
     except Exception as e:
         logger.error(f"An error occured on saving containers to db: {e}")
    
@@ -49,7 +53,8 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
                 container_exit_code = containerStatusAndExitCode["exitCode"]
                 
                 logger.info(f"Container: {container_object.name} | Status: {container_health_status} | Exit Code: {container_exit_code}. The container will be restarted including all its dependent containers")
-                add_crashed_container(container_object.id, container_object.logs(tail=logs_amount), logger)
+                crashed_container = CrashedContainerBase(containerid=container_object.id, logs=container_object.logs(tail=logs_amount))
+                CrashedContainerRepository.add_crashed_container(crashed_container, logger)
                 _restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger)
 
         except Exception as e:

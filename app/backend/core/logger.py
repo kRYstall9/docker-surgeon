@@ -1,4 +1,4 @@
-from app.utils.config import Config
+from app.core.config import Config
 import pytz
 from datetime import datetime
 import logging

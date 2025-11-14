@@ -3,13 +3,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine('sqlite:///./data/database.db', echo=True)
+engine = create_engine('sqlite:///./database.db', echo=False)
 Base = declarative_base()
-SessionLocal = sessionmaker(bind=engine)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 def init_db(logger:Logger):
-    from app.DAL.models import CrashedContainer, Container
+    from app.models.container import Container
+    from app.models.crashed_container import CrashedContainer
+    
     Base.metadata.create_all(engine)
     
     logger.info('DB initialized')

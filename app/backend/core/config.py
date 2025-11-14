@@ -8,13 +8,17 @@ class Config:
     timezone:str
     enable_dashboard:bool
     logs_amount:int
+    dashboard_address:str
+    dashboard_port:int
     
-    def __init__(self, restart_policy:any, log_level:str, timezone:str, enable_dashboard:bool, logs_amount:int):
+    def __init__(self, restart_policy:any, log_level:str, timezone:str, enable_dashboard:bool, logs_amount:int, dashboard_address:str, dashboard_port:int):
         self.restart_policy = restart_policy
         self.log_level = log_level
         self.timezone = timezone
         self.enable_dashboard = enable_dashboard
         self.logs_amount = logs_amount
+        self.dashboard_address = dashboard_address
+        self.dashboard_port = dashboard_port
     
     @classmethod
     def load(cls):
@@ -27,7 +31,9 @@ class Config:
                 log_level = getenv("LOG_LEVEL", "INFO").upper(),
                 timezone = getenv("LOG_TIMEZONE", "UTC"),
                 enable_dashboard = getenv("ENABLE_DASHBOARD", True),
-                logs_amount = getenv("LOGS_AMOUNT", 10)
+                logs_amount = getenv("LOGS_AMOUNT", 10),
+                dashboard_address = getenv("DASHBOARD_ADDRESS", "127.0.0.1"),
+                dashboard_port = int(getenv("DASHBOARD_PORT", 8000))
             )
         except Exception as e:
             raise Exception(f"Unable to load the config: {e}")
