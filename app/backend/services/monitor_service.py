@@ -3,7 +3,7 @@ from app.backend.core.config import Config
 from logging import Logger
 from datetime import datetime
 from time import sleep
-from app.backend.schemas.container_schema import ContainerCreate
+from app.backend.schemas.container_schema import ContainerBase
 from app.backend.schemas.crashed_container_schema import CrashedContainerBase
 from app.backend.repositories.container_repository import ContainerRepository
 from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
@@ -24,7 +24,7 @@ def monitor_containers(config:Config, logger:Logger):
     
     try:
         containers = client.containers.list(True)
-        container_create_list = [ContainerCreate(name=container.name, cid=container.id) for container in containers]
+        container_create_list = [ContainerBase(name=container.name, cid=container.id) for container in containers]
         ContainerRepository.add_containers(container_create_list, logger)
     except Exception as e:
         logger.error(f"An error occured on saving containers to db: {e}")
