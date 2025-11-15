@@ -11,7 +11,7 @@ from time import sleep
 load_dotenv()
 
 ############
-#  CONSTS  #
+#  CONSTS  #
 ############
 LABEL_NAME:str = "com.monitor.depends.on"
 
@@ -21,10 +21,14 @@ def monitor_containers():
     if client is None:
         print("[ERROR] - Failed to connect to Docker daemon.")
         return
-    
+        
     restart_policy = getenv("RESTART_POLICY")
-    restart_policy = json.loads(restart_policy)
-    
+    try:
+        restart_policy = json.loads(restart_policy)
+    except (TypeError, json.JSONDecodeError):
+        print("[ERROR] - Failed to parse RESTART_POLICY JSON.")
+        return
+        
     logger = getLogger()
     
     logger.info("Connected to Docker daemon.")
@@ -46,6 +50,7 @@ def getLogger() -> Logger:
         logging.warning(f"Timezone '{log_timezone}' not valid. Using UTC")
         
     def time_in_tz(*args):
+        # Using a fixed date format for consistent logging
         return datetime.now(tz).timetuple()
     
     logger = logging.getLogger(__name__)
@@ -69,7 +74,23 @@ def watch_container_events(client: DockerClient, restart_policy:any, logger:Logg
             if event.get("Type") != "container":
                 continue
             
-            container_id = event['id'][:12]
+            container_id = None
+            
+            # --- FIX: Safely retrieve container ID ---
+            # 1. Try to get the standard top-level ID
+            if 'id' in event:
+                container_id = event['id']
+            
+            # 2. If the standard ID is missing, check the Actor ID (common for exec/healthcheck events)
+            elif 'Actor' in event and 'ID' in event['Actor']:
+                container_id = event['Actor']['ID']
+            # ----------------------------------------
+            
+            if container_id is None:
+                logger.debug(f"Skipping container event with no ID: {event.get('Action')}")
+                continue
+            
+            container_id = container_id[:12] # Truncate to short ID
             container_object = client.containers.get(container_id)
             
             if container_object is None:
@@ -85,7 +106,8 @@ def watch_container_events(client: DockerClient, restart_policy:any, logger:Logg
                 restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger)
 
         except Exception as e:
-            logger.error(f"Exception occurred: {e}")
+            # Added logging of the full event for easier debugging of new issues
+            logger.error(f"Exception occurred: {e}. Event data: {event}")
 
 
 def build_dependency_graph(client: DockerClient, restart_policy:any, logger:Logger) -> dict:
@@ -133,8 +155,16 @@ def restart_with_graph(client: DockerClient, unhealthy_container, already_proces
     relevant = set(to_restart)
 
     for container_name in sorted_container_names:
+        # Check if the current container's parent(s) are in the list of containers to be restarted
         parents = [parent for parent, children in graph.items() if container_name in children]
-        ct = client.containers.get(container_name)
+        
+        # Check if the container actually exists before trying to get it
+        try:
+            ct = client.containers.get(container_name)
+        except Exception:
+            logger.debug(f"Dependent container {container_name} not found, skipping.")
+            continue
+
 
         if any(parent in relevant for parent in parents) and _canBeRestarted(client, ct, restart_policy, logger, True):
             to_restart.append(container_name)
@@ -184,7 +214,7 @@ def restart_with_graph(client: DockerClient, unhealthy_container, already_proces
                         logger.warning(f"Skipping {container.name}: waiting for parent(s) {unready_parents}.")
                         pending_children.add(container.name)
                         continue
-                    
+                        
                     logger.info(f"Restarting child {container.name} ({container.id[:12]}) - parent(s) ready")
                     container.restart()
 
@@ -205,7 +235,8 @@ def restart_with_graph(client: DockerClient, unhealthy_container, already_proces
 
 def _getContainerStatusAndExitCode(client, container):
     
-    container = client.containers.get(container.name)
+    # Reload container object to get the latest state
+    container.reload()
     
     container_health_status = container.attrs.get("State", {}).get("Health", {}).get("Status", "unknown")
     container_exit_code = container.attrs.get("State", {}).get("ExitCode")
@@ -226,13 +257,14 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
     
     logger.debug(f"CONTAINER NAME: {container.name} | STATUS: {container_status} | CODE: {container_exit_code} | REALSTATUS: {container_real_status}")
     
+    # Use health status, then fall back to real status if health is unknown/missing from policy
     policy = restart_policy["statuses"].get(container_status, {}) or restart_policy["statuses"].get(container_real_status, {})
     
     isContainerUnhealthy: bool = container_real_status == "running" and container_status == "unhealthy"
     
     if not policy and not isContainerUnhealthy:
         if checkOnChildren:
-            return True
+            return True # Allow children to be restarted if parent is being restarted
         logger.debug(f"No policy found. Container {container.name} won't be restarted")
         return False
     
@@ -243,7 +275,7 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
     # Container has to pass any of these checks to be restarted:
     # 1) Container is unhealthy
     # 2) Container matches the user-defined state and the exit code is not defined as excluded
-    # 3) The parent of this container has to be restarted
+    # 3) The parent of this container has to be restarted (checkOnChildren is True)
     
     if isContainerUnhealthy or container_exit_code not in excluded_exit_codes or checkOnChildren:
         logger.debug(f"{container.name} will be restarted soon")
@@ -254,8 +286,6 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
 def _parentSuccessfullyRestarted(client, container, logger:Logger) -> bool:
     """
     Checks if the parent container has successfully restarted
-    Args:
-        container (any): The parent container on which the status has to be checked
     """
     
     containerStatuses = _getContainerStatusAndExitCode(client, container)
@@ -269,10 +299,6 @@ def _parentSuccessfullyRestarted(client, container, logger:Logger) -> bool:
 def _operationTimedOut(initialDate:datetime, endDate:datetime, timeout:int, logger:Logger) -> bool:
     """
     Checks if the operation time has exceeded the given timeout
-    Args:
-        initialDate (datetime): start of the operation
-        endDate (datetime): the current time
-        timeout (int): Seconds after which the timeout should occur
     """
     
     deltaSeconds = (endDate-initialDate).seconds
@@ -315,7 +341,7 @@ def retry_pending_children(client: DockerClient, pending_children: list, graph: 
                 still_pending.append(child_name)
 
         pending_children = still_pending
-        if pending_children:
+        if pending_children and attempt < max_retries:
             logger.debug(f"{len(pending_children)} child container(s) still pending. Waiting {delay}s before next retry.")
             sleep(delay)
         else:
