@@ -1,11 +1,11 @@
 import { api } from "./client";
 import type {CrashedContainerChartStats, CrashedContainerLogs } from "../models/crashedContainer";
 
-export async function getChartStats(date:string): Promise<CrashedContainerChartStats[]> {
+export async function getChartStats(date_from:string, date_to:string): Promise<CrashedContainerChartStats[]> {
 
     try{
-        const res = await api.get('/chart-stats', {
-            params: { date }
+        const res = await api.get('/crashed_containers/chart-stats', {
+            params: { date_from, date_to }
         });
 
         return res.data;

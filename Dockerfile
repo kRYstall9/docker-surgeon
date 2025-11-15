@@ -22,6 +22,7 @@ COPY requirements.txt .
 
 COPY --from=dashboard_builder /dashboard/dist ./app/dashboard_build
 
+RUN mkdir -p ./app/data
 RUN pip install --no-cache-dir -r requirements.txt
 
 

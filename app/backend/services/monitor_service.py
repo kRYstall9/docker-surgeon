@@ -24,7 +24,7 @@ def monitor_containers(config:Config, logger:Logger):
     
     try:
         containers = client.containers.list(True)
-        container_create_list = [ContainerBase(name=container.name, cid=container.id) for container in containers]
+        container_create_list = [ContainerBase(name=container.name, cid=container.id[:12]) for container in containers]
         ContainerRepository.add_containers(container_create_list, logger)
     except Exception as e:
         logger.error(f"An error occured on saving containers to db: {e}")
@@ -52,8 +52,8 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
                 container_health_status = containerStatusAndExitCode["healthStatus"]
                 container_exit_code = containerStatusAndExitCode["exitCode"]
                 
-                logger.info(f"Container: {container_object.name} | Status: {container_health_status} | Exit Code: {container_exit_code}. The container will be restarted including all its dependent containers")
-                crashed_container = CrashedContainerBase(container_id=container_object.id, logs=container_object.logs(tail=logs_amount))
+                logger.info(f"Container: {container_object.name} | ID: {container_id} | Status: {container_health_status} | Exit Code: {container_exit_code}. The container will be restarted including all its dependent containers")
+                crashed_container = CrashedContainerBase(container_id=container_id, logs=container_object.logs(tail=logs_amount))
                 CrashedContainerRepository.add_crashed_container(crashed_container, logger)
                 _restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger)
 
@@ -95,7 +95,7 @@ def _topological_sort(graph: dict) -> list:
 
 
 def _restart_with_graph(client: DockerClient, unhealthy_container, already_processed: set, in_progress: set, restart_policy:any, logger: Logger):
-    graph = _build_dependency_graph(client, restart_policy, logger)
+    graph = _build_dependency_graph(client)
     sorted_container_names = _topological_sort(graph)
     
     logger.debug(f"Graph: {graph}")

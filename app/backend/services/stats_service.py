@@ -15,13 +15,14 @@ class StatsService:
         return crashed_containers
     
     @staticmethod
-    def get_crashed_containers_chart_stats(date:str):
+    def get_crashed_containers_chart_stats(date_from:str, date_to:str):
         
         try:
-            date = datetime.strptime(date, "%Y-%m-%d")
+            date_from = datetime.strptime(date_from, "%Y-%m-%d")
+            date_to = datetime.strptime(date_to, "%Y-%m-%d")
         except ValueError:
             raise ValueError("Incorrect date format, should be YYYY-MM-DD")
 
-        graph_stats = CrashedContainerRepository.get_crashed_containers_stats_by_date(date)
+        graph_stats = CrashedContainerRepository.get_crashed_containers_stats_by_date(date_from, date_to)
         return graph_stats
         

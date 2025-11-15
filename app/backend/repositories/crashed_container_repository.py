@@ -51,14 +51,41 @@ class CrashedContainerRepository:
             ]
 
     @staticmethod
-    def get_crashed_containers_stats_by_date(date:datetime):
+    def get_crashed_containers_stats_by_date(date_from:datetime, date_to:datetime):
         with SessionLocal() as db:
-            rows = (db.query(CrashedContainer.containerid, Container.containername, func.count(CrashedContainer.containerid).label('crash_count')).join(CrashedContainer.container).filter(func.date(CrashedContainer.crashedon) ==  date.date()).group_by(CrashedContainer.containerid, Container.containername).order_by(Container.containername.asc()).all())
+            
+            crash_date = func.date(CrashedContainer.crashedon)
+            
+            rows = (
+                db.query(
+                    CrashedContainer.containerid,
+                    Container.containername, 
+                    func.count(CrashedContainer.containerid).label('crash_count'),
+                    crash_date.label("crash_date")
+                )
+                .join(CrashedContainer.container)
+                .filter(
+                    crash_date >= date_from.date(),
+                    crash_date <= date_to.date()
+                )
+                .group_by(
+                    crash_date,
+                    CrashedContainer.containerid,
+                    Container.containername
+                )
+                .order_by(
+                    crash_date.asc(),
+                    Container.containername.asc()
+                )
+                .all()
+            )
+            
             return [
                 GraphStats(
+                    crashed_on = crash_date,
                     container_id=containerid,
                     container_name=containername,
                     crash_count=crash_count
                 )
-                for containerid, containername, crash_count in rows
+                for containerid, containername, crash_count, crash_date in rows
             ]
