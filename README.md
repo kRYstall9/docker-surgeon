@@ -49,7 +49,7 @@ LOG_TIMEZONE=UTC
 
 ```
 
-### 🧭 RESTART_POLICY
+### RESTART_POLICY
 
 Defines which containers to ignore and which states should trigger a restart.
 
@@ -59,13 +59,13 @@ Defines which containers to ignore and which states should trigger a restart.
         - `codesToExclude`: -> A list of codes that should *not* trigger a restart. Check codes [here](https://komodor.com/learn/exit-codes-in-containers-and-kubernetes-the-complete-guide/#:~:text=%EE%80%80Exit%EE%80%81%20%EE%80%80codes%EE%80%81%20are%20used)
 
 
-### 🪝 LOG_LEVEL
+### LOG_LEVEL
 
 Controls log verbosity.</br>
 Supported values: `error`, `warn`, `info`, `debug`.</br>
 Default: `info`.
 
-### 🕒 LOG_TIMEZONE
+### LOG_TIMEZONE
 
 Sets the timezone used in logs.</br>
 Must be a valid pytz timezone.</br>
@@ -74,6 +74,47 @@ Default: `UTC`
 
 Check the valid timezones [here](https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568)
 
+### ENABLE_DASHBOARD
+Enables or disables the web dashboard.</br>
+Default: `False`
+
+### LOGS_AMOUNT
+Number of log entries to retain when a container is restarted.
+
+Default: `10`
+
+### DASHBOARD_ADDRESS
+Address interface for the dashboard:
+- `127.0.0.1` -> Local only
+- `0.0.0.0` -> accessible on LAN
+
+Default: `0.0.0.0`
+
+### DASHBOARD_PORT
+Port on which the dashboard is served.</br>
+Default: `8000`
+
+### ADMIN_PASSWORD
+Password for accessing the dashboard.
+Support for three formats:
+- **Plain text**
+  - ADMIN_PASSWORD=r4nd0mP4ssW0rD
+- [**Bcrypt**](https://bcrypt-generator.com/)
+  - ADMIN_PASSWORD=$2a$12$9s8F...
+- [**Argon2**](https://argon2.online/) 
+  - ADMIN_PASSWORD=$argon2id$v=19$m=65536,t=3,p=4$...
+
+The system automatically detects whether the value is plain text, bcrypt, or Argon2.</br>
+If you want a strong random password (plain text), you can generate one using: `openssl rand -hex 32` *This is a plain password, not an encrypted hash*
+
+## 🔐 Authentication Flow
+1. User submits their password to /auth/login
+2. The server validates it in this order:
+    - argon2 verification
+    - bcrypt `checkpw`
+    - direct comparison (plain text)
+3. If valid, a JWT token  is created and stored in a **HttpOnly Cookie**
+4. Protected routes require thise cookie to be present and valid
 
 ## 🔗 Managing Container Dependencies
 
@@ -113,6 +154,8 @@ In this setup:</br>
 If `db` crashes → `db`, `backend`, and `frontend` will be restarted in order.</br>
 If `backend` crashes → `backend` and `frontend` will be restarted.</br>
 If `frontend` crashes → only `frontend` will be restarted.
+
+Multiple dependents can be specified for a container by separating them with a comma: `com.monitor.depends.on=backend,frontend,db`
 
 ## 🚀 Quick Start
 ```
@@ -164,3 +207,25 @@ services:
     labels:
       - "com.monitor.depends.on=backend"
 ```
+
+## 📊 Dashboard Overview
+Docker Surgeon includes a built-in web dashboard that helps you inspect:
+- Recent container crashes
+- Logs grouped by container
+- Crash statistics over time
+- Interactive charts
+- Date-based filtering
+- Full log viewer with multiline formatting
+
+To access the dashboard:</br>
+```
+http://<your-ip>:<your-port>
+```
+(Requires authentication — see [**Authentication Flow**](#-authentication-flow))
+
+### Dashboard Preview
+![alt text](docs/images/preview.png)
+
+### ⚠️ Security Notes
+- Do **not** expose the dashboard over the internet without HTTPS and reverse proxy protections
+- Always use a strong admin password (preferably hashed)
