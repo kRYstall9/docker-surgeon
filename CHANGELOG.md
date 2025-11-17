@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.2.0...v1.3.0) (2025-11-17)
+
+
+### Features
+
+* add dashboard ([4dd4428](https://github.com/kRYstall9/docker-surgeon/commit/4dd442841483b9567e8907706fb71678932c002e))
+
 # [1.2.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.1.1...v1.2.0) (2025-11-16)
 
 
