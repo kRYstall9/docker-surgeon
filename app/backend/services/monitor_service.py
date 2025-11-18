@@ -5,6 +5,7 @@ from datetime import datetime
 from time import sleep
 from app.backend.schemas.crashed_container_schema import CrashedContainerBase
 from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
+from app.backend.notifications.notification_manager import NotificationManager
 
 
 ############
@@ -62,6 +63,7 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
                 logger.info(f"Container: {container_object.name} | ID: {container_id} | Status: {container_health_status} | Exit Code: {container_exit_code}. The container will be restarted including all its dependent containers")
                 crashed_container = CrashedContainerBase(container_id=container_id, container_name=container_object.name, logs=container_object.logs(tail=logs_amount))
                 CrashedContainerRepository.add_crashed_container(crashed_container, logger)
+                NotificationManager.container_crashed_event(container_name=container_object.name, container_logs=container_object.logs(tail=logs_amount), container_exit_code=container_exit_code)
                 _restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger)
 
         except Exception as e:

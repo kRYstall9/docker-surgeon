@@ -15,6 +15,8 @@ Ideal for environments where high availability matters and zombie containers are
 
 - Supports container exclusion from restart policies.
 
+- Support real time [notifications](#-notifications) through [Apprise](https://github.com/caronc/apprise)
+
 ## 🧭 How It Works
 
 The service listens to Docker daemon events.
@@ -225,6 +227,46 @@ http://<your-ip>:<your-port>
 
 ### Dashboard Preview
 ![alt text](docs/images/preview.png)
+
+## 🔔 Notifications
+
+Docker Surgeon can send real-time notifications whenever a container crashes.
+Notifications are handled through Apprise, supporting 70+ services including:
+- Discord
+- Telegram
+- Slack
+- Matrix
+- Email
+- Webhooks
+- Gotify / Pushover / Pushbullet
+
+And many others…
+
+See [Apprise](https://github.com/caronc/apprise) for more details
+
+### Enabling Notifications
+Add these variables to your `.env`:</br>
+```
+ENABLE_NOTIFICATIONS=True
+NOTIFICATION_URLS=["discord://<webhook_id>/<webhook_token>"]
+NOTIFICATION_TITLE="⚠️ {container_name} crashed"
+NOTIFICATION_BODY="`exit code`: `{exit_code}`\nLast {n_logs} logs:\n{logs}"
+```
+
+### Formatting Notifications
+Docker Surgeon supports placeholder variables inside `NOTIFICATION_TITLE` and `NOTIFICATION_BODY`.</br>
+Available placeholders:
+- `{container_name}` → name of the crashed container
+- `{exit_code}` → container exit code
+- `{logs}` → last N logs (ANSI colors removed)
+- `{n_logs}` → number of logs configured in `LOGS_AMOUNT`
+
+Example notification body:</br>
+`exit code`: `{exit_code}`</br>
+Container `{container_name}` crashed.</br>
+Last {n_logs} logs:</br>
+{logs}
+
 
 ### ⚠️ Security Notes
 - Do **not** expose the dashboard over the internet without HTTPS and reverse proxy protections
