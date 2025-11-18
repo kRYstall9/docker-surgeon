@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.3.0...v1.4.0) (2025-11-18)
+
+
+### Features
+
+* add real-time notification support using Apprise ([dfec9d4](https://github.com/kRYstall9/docker-surgeon/commit/dfec9d4411cf81acc6224e9b637484cd2d2cef94)), closes [#1](https://github.com/kRYstall9/docker-surgeon/issues/1)
+
 # [1.3.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.2.0...v1.3.0) (2025-11-17)
 
 
