@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.1...v1.4.2) (2025-11-19)
+
+
+### Bug Fixes
+
+* the JSON object must be str, bytes or bytearray, not list ([13cc185](https://github.com/kRYstall9/docker-surgeon/commit/13cc1852c59c3fb09421c95a2c66af16b8b8b2e8))
+
 ## [1.4.1](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.0...v1.4.1) (2025-11-19)
 
 
