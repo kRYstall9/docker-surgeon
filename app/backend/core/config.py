@@ -38,8 +38,13 @@ class Config:
     def load(cls):
         try:
             load_dotenv()
-            restart_policy = getenv("RESTART_POLICY")
-            notification_urls = getenv("NOTIFICATION_URLS", [])
+            restart_policy = getenv("RESTART_POLICY", "")
+            notification_urls = getenv("NOTIFICATION_URLS", "")
+            
+            try:
+                notification_urls = json.loads(notification_urls) if notification_urls else []
+            except:
+                notification_urls = []
             
             return cls(
                 restart_policy = json.loads(restart_policy),
@@ -51,7 +56,7 @@ class Config:
                 dashboard_port = int(getenv("DASHBOARD_PORT", "8000")),
                 admin_password = getenv("ADMIN_PASSWORD", None),
                 enable_notifications = getenv("ENABLE_NOTIFICATIONS", "false").strip().lower() == "true",
-                notification_urls= json.loads(notification_urls),
+                notification_urls= notification_urls,
                 notification_title = getenv("NOTIFICATION_TITLE", None),
                 notification_body = normalize_escapes(getenv("NOTIFICATION_BODY", None))
             )
