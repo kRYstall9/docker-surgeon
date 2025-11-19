@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.0...v1.4.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* 'bool' object has no attribute 'lower' ([9e28c85](https://github.com/kRYstall9/docker-surgeon/commit/9e28c850c0dba8a02d23fb43fc97a754c59fadd5))
+
 # [1.4.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.3.0...v1.4.0) (2025-11-18)
 
 
