@@ -10,6 +10,7 @@
         "prepareCmd": "echo ${nextRelease.version} > VERSION"
       }
     ],
-    "@semantic-release/git"
+    "@semantic-release/git",
+    "@semantic-release/github"
   ]
 }
