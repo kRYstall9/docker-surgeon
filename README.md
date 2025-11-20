@@ -3,7 +3,7 @@ A Python service that monitors Docker containers in real time and automatically 
 Ideal for environments where high availability matters and zombie containers are not welcome at the party.
 
 ## ✨ Key Features
-- Monitors Docker events in real time.
+- Monitors Docker events in real-time.
 
 - Automatically restarts containers that are unhealthy or have unexpectedly exited.
 
@@ -15,7 +15,7 @@ Ideal for environments where high availability matters and zombie containers are
 
 - Supports container exclusion from restart policies.
 
-- Support real time [notifications](#-notifications) through [Apprise](https://github.com/caronc/apprise)
+- Supports real-time [notifications](#-notifications) through [Apprise](https://github.com/caronc/apprise)
 
 ## 🧭 How It Works
 
@@ -33,20 +33,39 @@ Here’s an example:
 
 ```
 # Restart policy in JSON format
-RESTART_POLICY='{
-  "excludedContainers": ["pihole", "db_backup"],
-  "statuses": {
-    "exited": {
-      "codesToExclude": [0]
+RESTART_POLICY = '{
+    "excludedContainers": ["container_name"], #-> More than 1 container could be excluded. Specify them as ["container1", "container2"]
+    "statuses": {
+        "exited": {
+            "codesToExclude": [0]   #-> More than 1 exit code could be excluded. Specify them as ["code1", "code2", "code3"]
+        }
     }
-  }
 }'
 
-# Log level
-# Options: error, warn, info, debug
-LOG_LEVEL=info
+ENABLE_DASHBOARD=True #-> Possible values [True | False]
+LOGS_AMOUNT=10 #-> This will display the last n logs on the dashboard to clearly indicate the issue that triggered the restart policy
+DASHBOARD_ADDRESS=0.0.0.0 #-> Possible values [0.0.0.0 | 127.0.0.1]
+DASHBOARD_PORT=8000 #-> Possible values [ Any free port ]
+ADMIN_PASSWORD=
+ENABLE_NOTIFICATIONS=True #-> Possible values [True | False]
+NOTIFICATION_URLS='["url1", "url2"]' #-> Check https://github.com/caronc/apprise/wiki#notification-services
+NOTIFICATION_TITLE="" #-> Edit the notification title as you wish
+NOTIFICATION_BODY="" #-> Edit the notification body as you wish
 
-# Log timezone (pytz compatible)
+
+
+###############
+#   LOGGING   #   
+###############
+
+# --- Log Level ---
+# Set the verbosity of logs. Options: "error", "warn", "info", "debug"
+# Default: info
+LOG_LEVEL= info
+
+# --- Log Timezone ---
+# Adjust the timezone used for logging
+# e.g. Europe/Rome, America/New_York
 LOG_TIMEZONE=UTC
 
 ```
@@ -108,6 +127,41 @@ Support for three formats:
 
 The system automatically detects whether the value is plain text, bcrypt, or Argon2.</br>
 If you want a strong random password (plain text), you can generate one using: `openssl rand -hex 32` *This is a plain password, not an encrypted hash*
+
+### ENABLE_NOTIFICATIONS
+Enables or disables real-time notifications.</br>
+Supported values: `True` | `False`</br>
+Default: `False`</br>
+See [the notification's section](#-notifications) for more details
+
+### NOTIFICATION_URLS
+A JSON-formatted list of notification endpoints, as documented in the [Apprise URL specification](https://github.com/caronc/apprise/wiki)</br>
+Expected Syntax: `'["url1", "url2"]'`</br>
+⚠️ *This must be valid JSON — use double quotes inside the list*.
+
+### NOTIFICATION_TITLE
+The title template for notifications.</br>
+Supports placeholders and emoji.</br>
+Default: `'⚠️ {container_name} crashed'`
+
+Supported placeholders:
+- {container_name}
+- {logs}
+- {exit_code}
+- {n_logs}
+
+### NOTIFICATION_BODY
+The body template for notifications.</br>
+Supports placeholders, multiline text (\n), and Markdown formatting.</br>
+Does **not** support icons/emoji (depending on the provider).</br>
+Default: ```'`exit code`: `{exit_code}`\nLast {n_logs} logs of `{container_name}`: {logs}'```
+
+Supported placeholders:
+- {container_name}
+- {logs}
+- {exit_code}
+- {n_logs}
+
 
 ## 🔐 Authentication Flow
 1. User submits their password to /auth/login
