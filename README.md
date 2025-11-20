@@ -218,6 +218,7 @@ Multiple dependents can be specified for a container by separating them with a c
 docker run -d \
   --name docker-surgeon \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /your/path/data:/app/app/data \  # persistent data (recommended if dashboard is enabled)
   -v $(pwd)/.env:/app/.env \
   krystall0/docker-surgeon:latest
 ```
@@ -227,6 +228,7 @@ You can also override environment variables directly:
 docker run -d \
   --name docker-surgeon \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /your/path/data:/app/app/data \ # persistent data (recommended if dashboard is enabled)
   -e LOG_LEVEL=INFO \
   -e LOG_TIMEZONE=Europe/Rome \
   -e RESTART_POLICY='{"excludedContainers":["pihole"],"statuses":{"exited":{"codesToExclude":[0]}}}' \
@@ -244,6 +246,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /your/path/data:/app/app/data # persistent data (recommended if dashboard is enabled)
     env_file:
         - /path/to/.env
 
