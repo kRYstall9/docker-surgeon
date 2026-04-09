@@ -1,0 +1,64 @@
+import httpx, json, asyncio, logging
+from typing import Callable, Awaitable
+
+
+class AgentClient:
+    def __init__(self, base_url: str, token: str, logger: logging.Logger):
+        self.base_url = base_url
+        self.token = token
+        self.headers = {"Authorization": f"Bearer {token}"} if token else {}
+        self.logger = logger
+
+    async def _request(self, method: str, endpoint: str, **kwargs) -> dict:
+        url = f"{self.base_url}{endpoint}"
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.request(method, url, headers=self.headers, **kwargs)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                self.logger.error(f"HTTP error {e.response.status_code} for {method} {url}: {e.response.text}")
+                raise
+            except Exception as e:
+                self.logger.error(f"Error during {method} {url}: {str(e)}")
+                raise
+
+    async def health_check(self) -> dict:
+        return await self._request("GET", "/health")
+
+    async def list_containers(self) -> list[dict]:
+        return await self._request("GET", "/containers")
+
+    async def restart_container(self, name: str) -> dict:
+        return await self._request("POST", f"/containers/{name}/restart")
+
+    async def stream_events(self, callback: Callable[[dict], Awaitable[None]]):
+        url = f"{self.base_url}/events/stream"
+        delay = 2
+        max_delay = 60
+        
+        while True:
+            try:
+                async with httpx.AsyncClient(timeout=None) as client:
+                    try:
+                        async with client.stream("GET", url, headers=self.headers) as response:
+                            response.raise_for_status()
+                            self.logger.info(f"[Agent {self.base_url}] Connected to event stream")
+                            delay = 2  # Reset delay on successful connection
+                            async for line in response.aiter_lines():
+                                if line.startswith("data:"):
+                                    try:
+                                        event = json.loads(line[5:].strip())
+                                        await callback(event)
+                                    except json.JSONDecodeError as e:
+                                        self.logger.error(f"Failed to decode event: {str(e)}")
+                    except httpx.HTTPStatusError as e:
+                        self.logger.error(f"HTTP error {e.response.status_code} for streaming events: {e.response.text}")
+                        raise
+                    except Exception as e:
+                        self.logger.error(f"Error during streaming events: {str(e)}")
+                        raise
+            except Exception:
+                self.logger.info(f"[Agent {self.base_url}] Stream disconnected. Reconnecting to event stream in {delay} seconds...")
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, max_delay)

@@ -7,7 +7,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo ${nextRelease.version} > VERSION"
+        "prepareCmd": "echo ${nextRelease.version} > VERSION && sed -i 's/^version = .*/version = \"${nextRelease.version}\"/' pyproject.toml"
       }
     ],
     "@semantic-release/git"

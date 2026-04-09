@@ -1,4 +1,7 @@
+import asyncio
+
 from docker import DockerClient, from_env
+from app.agent.agent_client import AgentClient
 from app.backend.core.config import Config
 from logging import Logger
 from datetime import datetime
@@ -14,18 +17,18 @@ from app.backend.notifications.notification_manager import NotificationManager
 LABEL_NAME:str = "com.monitor.depends.on"
 
 
-def monitor_containers(config:Config, logger:Logger):
+def monitor_containers(config:Config, isAgent:bool, logger:Logger):
     
     client = from_env()
     if client is None:
         print("[ERROR] - Failed to connect to Docker daemon.")
         return
     
-    _watch_container_events(client, config.restart_policy, config.logs_amount, logger)
+    _watch_container_events(client, config.restart_policy, config.logs_amount, isAgent, logger)
 
-def _watch_container_events(client: DockerClient, restart_policy:any, logs_amount:int, logger:Logger):
+def _watch_container_events(client: DockerClient, restart_policy:any, logs_amount:int, isAgent:bool , logger:Logger):
     already_processed = set()
-    in_progress = set()
+    in_progress = set() 
     
     for event in client.events(decode=True):
         try:
@@ -55,8 +58,8 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
                 logger.warning(f"Container with ID {container_id} not found.")
                 continue
             
-            if _canBeRestarted(client, container_object, restart_policy, logger):
-                containerStatusAndExitCode = _getContainerStatusAndExitCode(client, container_object)
+            if _canBeRestarted(container_object, restart_policy, logger):
+                containerStatusAndExitCode = _getContainerStatusAndExitCode(container_object)
                 container_health_status = containerStatusAndExitCode["healthStatus"]
                 container_exit_code = containerStatusAndExitCode["exitCode"]
                 
@@ -69,7 +72,6 @@ def _watch_container_events(client: DockerClient, restart_policy:any, logs_amoun
         except Exception as e:
             # Added logging of the full event for easier debugging of new issues
             logger.error(f"Exception occurred: {e}. Event data: {event}")
-
 
 def _build_dependency_graph(client: DockerClient) -> dict:
     graph = {}
@@ -103,7 +105,6 @@ def _topological_sort(graph: dict) -> list:
 
     return stack[::-1]  # Invert the results
 
-
 def _restart_with_graph(client: DockerClient, unhealthy_container, already_processed: set, in_progress: set, restart_policy:any, logger: Logger):
     graph = _build_dependency_graph(client)
     sorted_container_names = _topological_sort(graph)
@@ -127,7 +128,7 @@ def _restart_with_graph(client: DockerClient, unhealthy_container, already_proce
             continue
 
 
-        if any(parent in relevant for parent in parents) and _canBeRestarted(client, ct, restart_policy, logger, True):
+        if any(parent in relevant for parent in parents) and _canBeRestarted(ct, restart_policy, logger, True):
             to_restart.append(container_name)
             relevant.add(container_name)
 
@@ -152,7 +153,7 @@ def _restart_with_graph(client: DockerClient, unhealthy_container, already_proce
                 logger.debug(f"Waiting {timeout} seconds before aborting the restart operation")
                 operationInitTime = datetime.now()
                 while True:
-                    if _parentSuccessfullyRestarted(client, container, logger):
+                    if _parentSuccessfullyRestarted(container, logger):
                         logger.debug(f"{container.name} restarted successfully. Proceeding to restart his children")
                         restarted_parents.add(container.name)
                         break
@@ -192,9 +193,8 @@ def _restart_with_graph(client: DockerClient, unhealthy_container, already_proce
 
     in_progress.clear()
     already_processed.clear()
-    
 
-def _getContainerStatusAndExitCode(client, container):
+def _getContainerStatusAndExitCode(container):
     
     # Reload container object to get the latest state
     container.reload()
@@ -205,13 +205,13 @@ def _getContainerStatusAndExitCode(client, container):
 
     return {"healthStatus": container_health_status, "exitCode": container_exit_code, "realStatus": container_real_status}
 
-def _canBeRestarted(client, container, restart_policy:any, logger: Logger, checkOnChildren:bool = False) -> bool:
+def _canBeRestarted(container, restart_policy:any, logger: Logger, checkOnChildren:bool = False) -> bool:
     
     if container.name in restart_policy.get("excludedContainers", []):
         logger.debug(f"{container.name} won't be restarted due to the restart policy")
         return False
     
-    containerStatusAndExitCode = _getContainerStatusAndExitCode(client, container)
+    containerStatusAndExitCode = _getContainerStatusAndExitCode(container)
     container_status = containerStatusAndExitCode["healthStatus"]
     container_exit_code = containerStatusAndExitCode["exitCode"]
     container_real_status = containerStatusAndExitCode["realStatus"]
@@ -244,12 +244,12 @@ def _canBeRestarted(client, container, restart_policy:any, logger: Logger, check
     
     return False
 
-def _parentSuccessfullyRestarted(client, container, logger:Logger) -> bool:
+def _parentSuccessfullyRestarted(container, logger:Logger) -> bool:
     """
     Checks if the parent container has successfully restarted
     """
     
-    containerStatuses = _getContainerStatusAndExitCode(client, container)
+    containerStatuses = _getContainerStatusAndExitCode(container)
     # A container Health status is unknown when there's not healthcheck for it
     logger.debug(f"{container.name} statuses: {containerStatuses}")
     if (containerStatuses["healthStatus"] == "unknown" or containerStatuses["healthStatus"] == "healthy") and containerStatuses["realStatus"] == "running":
@@ -310,3 +310,14 @@ def _retry_pending_children(client: DockerClient, pending_children: list, graph:
 
     if pending_children:
         logger.warning(f"Some child containers could not be restarted after {max_retries} retries: {pending_children}")
+        
+        
+def _agent_watch_container_events(agent_client: AgentClient, restart_policy:any, logs_amount:int, logger:Logger):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(agent_client.stream_events(lambda event: _handle_agent_event(event, agent_client, restart_policy, logs_amount, logger)))
+    
+def _handle_agent_event(event: dict, agent_client: AgentClient, restart_policy:any, logs_amount:int, logger:Logger):
+    # This function will handle events received from the agent's event stream
+    # It should implement similar logic to _watch_container_events but adapted for the agent's API and event format
+    logger(f"Received event from agent: {event}")
+    pass

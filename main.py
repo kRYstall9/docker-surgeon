@@ -4,10 +4,10 @@ from app.backend.core import state
 from app.backend.core.logger import get_bootstrap_logger, get_logger
 from app.backend.services.monitor_service import monitor_containers
 from threading import Thread
+import uvicorn
 
 
-if __name__  == '__main__':
-    
+def bootstrap():
     logger = get_bootstrap_logger()
     
     try:
@@ -21,8 +21,31 @@ if __name__  == '__main__':
     logger.info(f"Config successfully loaded!\n{config}")
     state.logger = logger
     init_db(logger)
+    
+    return config, logger
+
+def run_agent():
+    config, logger = bootstrap()
+    
+    state.logger = logger
+    state.config = config
+    
+    from app.agent.agent_server import app as agent_app
+    logger.info(f"Starting agent server at {config.agent_host}:{config.agent_port}")
+    uvicorn.run(agent_app, host=config.agent_host, port=config.agent_port)
+
+def run_server():
+    config, logger = bootstrap()
+    
     worker = Thread(target=monitor_containers, args=(config, logger), daemon=True)
     worker.start()
+                
+    for agent in config.agents_config:
+        logger.info(f"Starting agent client for {agent['name']} at {agent['host']}:{agent['port']}")
+        from app.agent.agent_client import AgentClient
+        agent_client = AgentClient(base_url=f"http://{agent['host']}:{agent['port']}", token=agent.get("token", ""), logger=logger)
+        worker = Thread(target=agent_client.stream_events, args=(monitor_containers), daemon=True)
+        worker.start()
     
     if config.enable_dashboard:
         import uvicorn
@@ -47,12 +70,8 @@ if __name__  == '__main__':
         def serve_dashboard(full_path:str):
             index_path = path.join(f"{DASHBOARD_DIR}", "index.html")
             return FileResponse(index_path)
-             
+            
         uvicorn.run(app, host=config.dashboard_address, port=config.dashboard_port, reload=False)
-        
         logger.info("FastAPI server started")
-    
-    worker.join()
-    
-    
+
     

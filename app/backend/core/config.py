@@ -19,8 +19,11 @@ class Config:
     notification_urls:list[str]
     notification_title:str | None
     notification_body:str | None
+    agents_config: list[dict] = []
+    agent_host: str | None = None
+    agent_port: int | None = None
     
-    def __init__(self, restart_policy:any, log_level:str, timezone:str, enable_dashboard:bool, logs_amount:int, dashboard_address:str, dashboard_port:int, admin_password: str | None, enable_notifications:bool, notification_urls:list[str], notification_title:str | None, notification_body:str | None):
+    def __init__(self, restart_policy:any, log_level:str, timezone:str, enable_dashboard:bool, logs_amount:int, dashboard_address:str, dashboard_port:int, admin_password: str | None, enable_notifications:bool, notification_urls:list[str], notification_title:str | None, notification_body:str | None, agents_config: list[dict] = [], agent_host: str | None = None, agent_port: int | None = None):
         self.restart_policy = restart_policy
         self.log_level = log_level
         self.timezone = timezone
@@ -33,7 +36,10 @@ class Config:
         self.notification_urls = notification_urls
         self.notification_title = notification_title
         self.notification_body = notification_body
-    
+        self.agents_config = agents_config
+        self.agent_host = agent_host
+        self.agent_port = agent_port
+
     @classmethod
     def load(cls):
         try:
@@ -58,7 +64,11 @@ class Config:
                 enable_notifications = getenv("ENABLE_NOTIFICATIONS", "false").strip().lower() == "true",
                 notification_urls= notification_urls,
                 notification_title = getenv("NOTIFICATION_TITLE", None),
-                notification_body = normalize_escapes(getenv("NOTIFICATION_BODY", None))
+                notification_body = normalize_escapes(getenv("NOTIFICATION_BODY", None)),
+                agents_config = json.loads(getenv("AGENTS_CONFIG", "[]")),
+                agent_host = getenv("AGENT_HOST", "127.0.0.1"),
+                agent_port = int(getenv("AGENT_PORT", "8000"))
+
             )
         except Exception as e:
             raise Exception(f"Unable to load the config: {e}")
@@ -77,5 +87,5 @@ class Config:
         
 
     def __repr__(self):
-        return f"Config:\nRestart Policy: {self.restart_policy}\nLog Level: {self.log_level}\nTime Zone: {self.timezone}\nEnable Dashboard: {self.enable_dashboard}\nDashboard Address: {self.dashboard_address}\nDashboard Port: {self.dashboard_port}\nLogs Amount: {self.logs_amount}\nEnable Notifications: {self.enable_notifications}"
+        return f"Config:\nRestart Policy: {self.restart_policy}\nLog Level: {self.log_level}\nTime Zone: {self.timezone}\nEnable Dashboard: {self.enable_dashboard}\nDashboard Address: {self.dashboard_address}\nDashboard Port: {self.dashboard_port}\nLogs Amount: {self.logs_amount}\nEnable Notifications: {self.enable_notifications}\nAgents Config: {self.agents_config}\nAgent Host: {self.agent_host}\nAgent Port: {self.agent_port}"
         
