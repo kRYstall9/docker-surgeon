@@ -22,8 +22,25 @@ class Config:
     agents_config: list[dict] = []
     agent_host: str | None = None
     agent_port: int | None = None
+    agent_token: str | None = None
     
-    def __init__(self, restart_policy:any, log_level:str, timezone:str, enable_dashboard:bool, logs_amount:int, dashboard_address:str, dashboard_port:int, admin_password: str | None, enable_notifications:bool, notification_urls:list[str], notification_title:str | None, notification_body:str | None, agents_config: list[dict] = [], agent_host: str | None = None, agent_port: int | None = None):
+    def __init__(self,
+                 restart_policy:any, 
+                 log_level:str, 
+                 timezone:str, 
+                 enable_dashboard:bool, 
+                 logs_amount:int, 
+                 dashboard_address:str, 
+                 dashboard_port:int, 
+                 admin_password: str | None, 
+                 enable_notifications:bool, 
+                 notification_urls:list[str], 
+                 notification_title:str | None, 
+                 notification_body:str | None, 
+                 agents_config: list[dict] = [], 
+                 agent_host: str | None = None, 
+                 agent_port: int | None = None, 
+                 agent_token: str | None = None):
         self.restart_policy = restart_policy
         self.log_level = log_level
         self.timezone = timezone
@@ -39,7 +56,7 @@ class Config:
         self.agents_config = agents_config
         self.agent_host = agent_host
         self.agent_port = agent_port
-
+        self.agent_token = agent_token
     @classmethod
     def load(cls):
         try:
@@ -53,7 +70,7 @@ class Config:
                 notification_urls = []
             
             return cls(
-                restart_policy = json.loads(restart_policy),
+                restart_policy = json.loads(restart_policy) if len(restart_policy) > 0 else {},
                 log_level = getenv("LOG_LEVEL", "INFO").upper(),
                 timezone = getenv("LOG_TIMEZONE", "UTC"),
                 enable_dashboard = getenv("ENABLE_DASHBOARD", "false").strip().lower() == "true",
@@ -67,8 +84,8 @@ class Config:
                 notification_body = normalize_escapes(getenv("NOTIFICATION_BODY", None)),
                 agents_config = json.loads(getenv("AGENTS_CONFIG", "[]")),
                 agent_host = getenv("AGENT_HOST", "127.0.0.1"),
-                agent_port = int(getenv("AGENT_PORT", "8000"))
-
+                agent_port = int(getenv("AGENT_PORT", "8000")),
+                agent_token = getenv("AGENT_TOKEN", None)
             )
         except Exception as e:
             raise Exception(f"Unable to load the config: {e}")
@@ -87,5 +104,4 @@ class Config:
         
 
     def __repr__(self):
-        return f"Config:\nRestart Policy: {self.restart_policy}\nLog Level: {self.log_level}\nTime Zone: {self.timezone}\nEnable Dashboard: {self.enable_dashboard}\nDashboard Address: {self.dashboard_address}\nDashboard Port: {self.dashboard_port}\nLogs Amount: {self.logs_amount}\nEnable Notifications: {self.enable_notifications}\nAgents Config: {self.agents_config}\nAgent Host: {self.agent_host}\nAgent Port: {self.agent_port}"
-        
+        return f"Config:\nRestart Policy: {self.restart_policy}\nLog Level: {self.log_level}\nTime Zone: {self.timezone}\nEnable Dashboard: {self.enable_dashboard}\nDashboard Address: {self.dashboard_address}\nDashboard Port: {self.dashboard_port}\nLogs Amount: {self.logs_amount}\nEnable Notifications: {self.enable_notifications}\nAgents Config: {self.agents_config}\nAgent Host: {self.agent_host}\nAgent Port: {self.agent_port}\nAgent Token: {self.agent_token}"

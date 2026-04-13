@@ -18,7 +18,7 @@ class NotificationManager:
         try:
             context = {
                 "container_name": container_name,
-                "logs": ANSI_ESCAPE.sub('',container_logs.decode('utf-8', errors='ignore')),
+                "logs": ANSI_ESCAPE.sub('',container_logs),
                 "exit_code": container_exit_code,
                 "n_logs": config.logs_amount
             }

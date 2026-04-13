@@ -1,5 +1,5 @@
 import httpx, json, asyncio, logging
-from typing import Callable, Awaitable
+from typing import Any
 
 
 class AgentClient:
@@ -26,13 +26,19 @@ class AgentClient:
     async def health_check(self) -> dict:
         return await self._request("GET", "/health")
 
-    async def list_containers(self) -> list[dict]:
+    async def list_containers(self) -> list[Any]:
         return await self._request("GET", "/containers")
 
-    async def restart_container(self, name: str) -> dict:
-        return await self._request("POST", f"/containers/{name}/restart")
+    async def restart_container(self, name: str | None = None, id: str | None = None) -> dict:
+        return await self._request("POST", f"/containers/restart", params={"name": name, "id": id} if name or id else {})
 
-    async def stream_events(self, callback: Callable[[dict], Awaitable[None]]):
+    async def get_container(self, name: str | None = None, id: str | None = None):
+        return await self._request("GET", "/containers/search", params={"name": name, "id": id} if name or id else {})
+
+    async def get_container_logs(self, name: str | None = None, id: str | None = None, tail: int = 10) -> str:
+        return await self._request("GET", "/containers/logs", params={"name": name, "id": id, "tail": tail} if name or id else {})
+    
+    async def stream_events(self):
         url = f"{self.base_url}/events/stream"
         delay = 2
         max_delay = 60
@@ -46,10 +52,11 @@ class AgentClient:
                             self.logger.info(f"[Agent {self.base_url}] Connected to event stream")
                             delay = 2  # Reset delay on successful connection
                             async for line in response.aiter_lines():
-                                if line.startswith("data:"):
+                                self.logger.debug(f"Received line from event stream: {line}")
+                                if line and len(line) > 0:
                                     try:
-                                        event = json.loads(line[5:].strip())
-                                        await callback(event)
+                                        event = json.loads(line[5:].strip())  # Remove "data: " prefix
+                                        yield event
                                     except json.JSONDecodeError as e:
                                         self.logger.error(f"Failed to decode event: {str(e)}")
                     except httpx.HTTPStatusError as e:

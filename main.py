@@ -36,16 +36,20 @@ def run_agent():
 
 def run_server():
     config, logger = bootstrap()
+    workers = []
     
     worker = Thread(target=monitor_containers, args=(config, logger), daemon=True)
     worker.start()
+    workers.append(worker)
                 
     for agent in config.agents_config:
         logger.info(f"Starting agent client for {agent['name']} at {agent['host']}:{agent['port']}")
         from app.agent.agent_client import AgentClient
         agent_client = AgentClient(base_url=f"http://{agent['host']}:{agent['port']}", token=agent.get("token", ""), logger=logger)
-        worker = Thread(target=agent_client.stream_events, args=(monitor_containers), daemon=True)
+        
+        worker = Thread(target=monitor_containers, args=(config, logger, True, agent_client), daemon=True)
         worker.start()
+        workers.append(worker)
     
     if config.enable_dashboard:
         import uvicorn
@@ -74,4 +78,6 @@ def run_server():
         uvicorn.run(app, host=config.dashboard_address, port=config.dashboard_port, reload=False)
         logger.info("FastAPI server started")
 
+    for worker in workers:
+        worker.join()
     
