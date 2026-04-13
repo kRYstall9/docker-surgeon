@@ -179,8 +179,6 @@ async def _getContainerStatusAndExitCode(container, logger: Logger, is_agent: bo
     else:
         container = ContainerProxy(await agent_client.get_container(name=container.name))
     
-    logger.debug(f"Container data: {container._data if hasattr(container, '_data') else container.attrs}")  # ← aggiungi questo
-    
     attrs = container.attrs or {}
     container_health_status = attrs.get("State", {}).get("Health", {}).get("Status", "unknown")
     container_exit_code = attrs.get("State", {}).get("ExitCode")
