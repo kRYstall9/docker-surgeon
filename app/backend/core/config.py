@@ -28,7 +28,6 @@ class Config:
     agent_host: str | None = None
     agent_port: int | None = None
     agent_token: str | None = None
-    verify_ssl: bool = True
     
     @classmethod
     def load(cls):
@@ -58,8 +57,7 @@ class Config:
                 agents_config = [AgentConfig.from_dict(agent) for agent in json.loads(getenv("AGENTS_CONFIG", "[]"))],
                 agent_host = getenv("AGENT_HOST", "127.0.0.1"),
                 agent_port = int(getenv("AGENT_PORT", "8000")),
-                agent_token = getenv("AGENT_TOKEN", None),
-                verify_ssl = getenv("VERIFY_SSL", "true").strip().lower() == "true"
+                agent_token = getenv("AGENT_TOKEN", None)
             )
         except Exception as e:
             raise Exception(f"Unable to load the config: {e}")
