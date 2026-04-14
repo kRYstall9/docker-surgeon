@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.2...v1.5.0) (2026-04-14)
+
+
+### Features
+
+* add multi-host support via agents ([#5](https://github.com/kRYstall9/docker-surgeon/issues/5)) ([3be3216](https://github.com/kRYstall9/docker-surgeon/commit/3be3216841be556e8d7eae51d236909bb8c14c0e))
+
 ## [1.4.2](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.1...v1.4.2) (2025-11-19)
 
 
