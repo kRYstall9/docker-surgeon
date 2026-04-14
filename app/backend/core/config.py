@@ -1,13 +1,15 @@
+from dataclasses import field, dataclass
 import json
 from threading import Lock
+from typing import Any
 from dotenv import load_dotenv
 from os import getenv
+from app.backend.core.agent_config import AgentConfig
 from app.backend.utils.string_utils import normalize_escapes
 
+@dataclass
 class Config:
-    _instance = None
-    _lock = Lock()
-    restart_policy:any
+    restart_policy: Any
     log_level:str
     timezone:str
     enable_dashboard:bool
@@ -19,44 +21,15 @@ class Config:
     notification_urls:list[str]
     notification_title:str | None
     notification_body:str | None
-    agents_config: list[dict] = []
+    agents_config: list[AgentConfig] = field(default_factory=list)
     agent_host: str | None = None
     agent_port: int | None = None
     agent_token: str | None = None
+    verify_ssl: bool = True
     
-    def __init__(self,
-                 restart_policy:any, 
-                 log_level:str, 
-                 timezone:str, 
-                 enable_dashboard:bool, 
-                 logs_amount:int, 
-                 dashboard_address:str, 
-                 dashboard_port:int, 
-                 admin_password: str | None, 
-                 enable_notifications:bool, 
-                 notification_urls:list[str], 
-                 notification_title:str | None, 
-                 notification_body:str | None, 
-                 agents_config: list[dict] = [], 
-                 agent_host: str | None = None, 
-                 agent_port: int | None = None, 
-                 agent_token: str | None = None):
-        self.restart_policy = restart_policy
-        self.log_level = log_level
-        self.timezone = timezone
-        self.enable_dashboard = enable_dashboard
-        self.logs_amount = logs_amount
-        self.dashboard_address = dashboard_address
-        self.dashboard_port = dashboard_port
-        self.admin_password = admin_password
-        self.enable_notifications = enable_notifications
-        self.notification_urls = notification_urls
-        self.notification_title = notification_title
-        self.notification_body = notification_body
-        self.agents_config = agents_config
-        self.agent_host = agent_host
-        self.agent_port = agent_port
-        self.agent_token = agent_token
+    _instance: "Config | None" = field(default=None, init=False, repr=False)
+    _lock: Lock = field(default_factory=Lock, init=False, repr=False)
+    
     @classmethod
     def load(cls):
         try:
@@ -82,10 +55,11 @@ class Config:
                 notification_urls= notification_urls,
                 notification_title = getenv("NOTIFICATION_TITLE", None),
                 notification_body = normalize_escapes(getenv("NOTIFICATION_BODY", None)),
-                agents_config = json.loads(getenv("AGENTS_CONFIG", "[]")),
+                agents_config = [AgentConfig.from_dict(agent) for agent in json.loads(getenv("AGENTS_CONFIG", "[]"))],
                 agent_host = getenv("AGENT_HOST", "127.0.0.1"),
                 agent_port = int(getenv("AGENT_PORT", "8000")),
-                agent_token = getenv("AGENT_TOKEN", None)
+                agent_token = getenv("AGENT_TOKEN", None),
+                verify_ssl = getenv("VERIFY_SSL", "true").strip().lower() == "true"
             )
         except Exception as e:
             raise Exception(f"Unable to load the config: {e}")
@@ -101,7 +75,3 @@ class Config:
             return cls._instance
         except Exception as e:
             raise Exception(e)
-        
-
-    def __repr__(self):
-        return f"Config:\nRestart Policy: {self.restart_policy}\nLog Level: {self.log_level}\nTime Zone: {self.timezone}\nEnable Dashboard: {self.enable_dashboard}\nDashboard Address: {self.dashboard_address}\nDashboard Port: {self.dashboard_port}\nLogs Amount: {self.logs_amount}\nEnable Notifications: {self.enable_notifications}\nAgents Config: {self.agents_config}\nAgent Host: {self.agent_host}\nAgent Port: {self.agent_port}\nAgent Token: {self.agent_token}"

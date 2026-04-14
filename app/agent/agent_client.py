@@ -6,12 +6,13 @@ class AgentClient:
     def __init__(self, base_url: str, token: str, logger: logging.Logger):
         self.base_url = base_url
         self.token = token
+        self.verify_ssl: bool = True
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}
         self.logger = logger
 
     async def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.base_url}{endpoint}"
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
             try:
                 response = await client.request(method, url, headers=self.headers, **kwargs)
                 response.raise_for_status()
@@ -45,7 +46,7 @@ class AgentClient:
         
         while True:
             try:
-                async with httpx.AsyncClient(timeout=None) as client:
+                async with httpx.AsyncClient(verify=self.verify_ssl, timeout=None) as client:
                     try:
                         async with client.stream("GET", url, headers=self.headers) as response:
                             response.raise_for_status()

@@ -1,3 +1,4 @@
+from app.backend.core.agent_config import AgentConfig
 from app.backend.core.database import init_db
 from app.backend.core.config import Config
 from app.backend.core import state
@@ -45,7 +46,8 @@ def run_server():
     for agent in config.agents_config:
         logger.info(f"Starting agent client for {agent['name']} at {agent['host']}:{agent['port']}")
         from app.agent.agent_client import AgentClient
-        agent_client = AgentClient(base_url=f"http://{agent['host']}:{agent['port']}", token=agent.get("token", ""), logger=logger)
+        agent_config = AgentConfig.from_dict(agent)
+        agent_client = AgentClient(base_url=agent_config.base_url, token=agent_config.token, logger=logger)
         
         worker = Thread(target=monitor_containers, args=(config, logger, True, agent_client), daemon=True)
         worker.start()
