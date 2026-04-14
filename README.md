@@ -4,18 +4,13 @@ Ideal for environments where high availability matters and zombie containers are
 
 ## ✨ Key Features
 - Monitors Docker events in real-time.
-
 - Automatically restarts containers that are unhealthy or have unexpectedly exited.
-
 - Supports a restart policy configurable via environment variables.
-
-- Handles container dependencies using labels (com.monitor.depends.on).
-
+- Handles container dependencies using labels (`com.monitor.depends.on`).
 - Detailed, timezone-aware logging.
-
 - Supports container exclusion from restart policies.
-
 - Supports real-time [notifications](#-notifications) through [Apprise](https://github.com/caronc/apprise)
+- **Multi-host support via Agents** — monitor and manage containers across multiple machines from a single server.
 
 ## 🧭 How It Works
 
@@ -26,10 +21,95 @@ If the container has dependencies (defined through labels), it restarts those to
 Example: `[db] --> [backend] --> [frontend]` </br>
 If `db` goes down, the service will restart `db`, then `backend`, and finally `frontend`.
 
+## 🤖 Agents (Multi-host Support)
+
+Docker Surgeon supports a distributed mode where a central **server** manages multiple remote **agents**, each running on a different machine. This allows you to monitor and control containers across your entire infrastructure from a single point.
+
+### Architecture
+
+```
+[Server] ──HTTP/HTTPS──▶ [Agent A - Machine 1]
+         ──HTTP/HTTPS──▶ [Agent B - Machine 2]
+         ──HTTP/HTTPS──▶ [Agent C - Machine 3]
+```
+
+- The **server** runs the dashboard, the monitor logic, and communicates with all configured agents.
+- Each **agent** runs on a remote machine, exposes a secured REST API, and has access to the local Docker daemon via the Docker socket.
+
+### Running an Agent
+
+On each remote machine, run the agent with Docker:
+
+```yaml
+# docker-compose.yml (on the remote machine)
+services:
+  agent:
+    image: krystall0/docker-surgeon:latest
+    container_name: docker-surgeon-agent
+    command: agent
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - AGENT_HOST=0.0.0.0
+      - AGENT_PORT=8001
+      - AGENT_TOKEN=yoursecuretokenhere
+```
+
+### Registering Agents on the Server
+
+On the server, configure agents via the `AGENTS_CONFIG` environment variable as a JSON array:
+
+```env
+AGENTS_CONFIG='[
+  {
+    "name": "machine-1",
+    "host": "192.168.1.50",
+    "port": 8001,
+    "token": "yoursecuretokenhere"
+  },
+  {
+    "name": "machine-2",
+    "host": "https://agent.example.com",
+    "port": 443,
+    "token": "anothersecuretoken",
+    "verify_ssl": true
+  }
+]'
+```
+
+Each agent entry supports the following fields:
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `host` | ✅ | — | IP address or domain of the agent. Prefix with `https://` for TLS. |
+| `name` | ❌ | `null` | Friendly name for the agent (used in logs). |
+| `port` | ❌ | `80` / `443` | Port the agent listens on. Auto-defaults to `443` if host starts with `https://`. |
+| `token` | ❌ | `null` | Bearer token to authenticate with the agent. Must match `AGENT_TOKEN` on the agent. |
+| `verify_ssl` | ❌ | `true` | Whether to verify the agent's SSL certificate. Set to `false` for self-signed certificates on internal networks. |
+
+### Agent Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `AGENT_HOST` | `127.0.0.1` | Address the agent binds to. Use `0.0.0.0` to accept remote connections. |
+| `AGENT_PORT` | `8001` | Port the agent listens on. |
+| `AGENT_TOKEN` | `null` | Secret token required to authenticate incoming requests. |
+
+### Security Considerations
+
+- Always set `AGENT_TOKEN` on every agent. Without it, the API is open to anyone who can reach the port.
+- If the agent is exposed to the internet, place it behind a reverse proxy (Nginx, Caddy) with HTTPS enabled.
+- For internal networks, HTTP with a strong token is generally sufficient.
+- If using a self-signed certificate, set `verify_ssl: false` on the server side for that agent.
+
+---
 
 ## 🧪 Environment Variables
 Configuration is handled through a `.env` file in the project root.
-Here’s an example:
+Here's an example:
 
 ```
 # Restart policy in JSON format
@@ -53,7 +133,6 @@ NOTIFICATION_TITLE="" #-> Edit the notification title as you wish
 NOTIFICATION_BODY="" #-> Edit the notification body as you wish
 
 
-
 ###############
 #   LOGGING   #   
 ###############
@@ -67,6 +146,23 @@ LOG_LEVEL= info
 # Adjust the timezone used for logging
 # e.g. Europe/Rome, America/New_York
 LOG_TIMEZONE=UTC
+
+AGENTS_CONFIG='[{"name": "my-server", "host": "192.168.1.50", "port": 8001, "token": "secret"}]'
+
+# This is used to specify if the agent should bind to a specific host. 
+# This is useful if the agent is running on the same machine as the main application and you want to restrict access to it. 
+# Possible values [127.0.0.1 | 0.0.0.0]
+# Default: 127.0.0.1
+AGENT_HOST=127.0.0.1 
+
+# This is the port on which the agent will listen for incoming requests. Make sure to set this to a free port. 
+# Possible values [ Any free port ]
+# Default: 8000
+AGENT_PORT=8000 
+
+# This is the token that the agent will use to authenticate incoming requests. Make sure to set this to a strong, unique value.
+# Default: None
+AGENT_TOKEN= yourtoken
 
 ```
 
@@ -328,3 +424,4 @@ Last {n_logs} logs:</br>
 ### ⚠️ Security Notes
 - Do **not** expose the dashboard over the internet without HTTPS and reverse proxy protections
 - Always use a strong admin password (preferably hashed)
+- Always set `AGENT_TOKEN` on every agent to prevent unauthorized access
