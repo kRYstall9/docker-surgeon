@@ -1,7 +1,7 @@
 from dataclasses import field, dataclass
 import json
 from threading import Lock
-from typing import Any
+from typing import Any, ClassVar
 from dotenv import load_dotenv
 from os import getenv
 from app.backend.core.agent_config import AgentConfig
@@ -9,6 +9,9 @@ from app.backend.utils.string_utils import normalize_escapes
 
 @dataclass
 class Config:
+    _instance: ClassVar["Config | None"] = None
+    _lock: ClassVar[Lock] = Lock()
+    
     restart_policy: Any
     log_level:str
     timezone:str
@@ -26,9 +29,6 @@ class Config:
     agent_port: int | None = None
     agent_token: str | None = None
     verify_ssl: bool = True
-    
-    _instance: "Config | None" = field(default=None, init=False, repr=False)
-    _lock: Lock = field(default_factory=Lock, init=False, repr=False)
     
     @classmethod
     def load(cls):

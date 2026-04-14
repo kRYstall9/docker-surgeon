@@ -4,6 +4,7 @@ from app.backend.core.config import Config
 from app.backend.core import state
 from app.backend.core.logger import get_bootstrap_logger, get_logger
 from app.backend.services.monitor_service import monitor_containers
+from app.agent.utils.agent_logger import AgentLogger
 from threading import Thread
 import uvicorn
 
@@ -44,10 +45,10 @@ def run_server():
     workers.append(worker)
                 
     for agent in config.agents_config:
-        logger.info(f"Starting agent client for {agent['name']} at {agent['host']}:{agent['port']}")
+        logger.info(f"Starting agent client for {agent.name} at {agent.host}:{agent.port}")
         from app.agent.agent_client import AgentClient
-        agent_config = AgentConfig.from_dict(agent)
-        agent_client = AgentClient(base_url=agent_config.base_url, token=agent_config.token, logger=logger)
+        logger = AgentLogger(logger, extra={"agent_name": agent.name})
+        agent_client = AgentClient(base_url=agent.base_url, token=agent.token, logger=logger)
         
         worker = Thread(target=monitor_containers, args=(config, logger, True, agent_client), daemon=True)
         worker.start()

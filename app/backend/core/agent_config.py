@@ -2,13 +2,17 @@ from dataclasses import dataclass,field
 
 @dataclass
 class AgentConfig:
-    host: str
+    name: str | None = None
+    host: str | None = None
     port: int | None = None
     token: str | None = None
     verify_ssl: bool = True
     
     @property
     def base_url(self) -> str:
+        if self.host is None:
+            return ""
+
         if self.host.startswith("http://") or self.host.startswith("https://"):
             protocol = ""
         else:
@@ -22,6 +26,7 @@ class AgentConfig:
     @classmethod
     def from_dict(cls, data: dict) -> 'AgentConfig':
         return cls(
+            name=data.get("name", ""),
             host=data.get("host", ""),
             port=data.get("port", None),
             token=data.get("token", ""),
