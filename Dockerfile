@@ -17,14 +17,14 @@ RUN apt-get update && \
 WORKDIR /app
 
 COPY app/ ./app
-COPY main.py .
-COPY requirements.txt .
+COPY main.py ./app/main.py
+COPY pyproject.toml .
 
 RUN rm -rf ./app/dashboard
 
 COPY --from=dashboard_builder /dashboard/dist ./app/dashboard_build
 
 RUN mkdir -p ./app/data
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -e .
 
-CMD ["python", "main.py"]
+CMD ["server"]

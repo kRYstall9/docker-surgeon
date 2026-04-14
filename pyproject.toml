@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docker-surgeon"
+version = "1.4.2"
+authors = [
+  { name="kRYstall9" },
+]
+description = "Monitor and restart unhealthy, killed, or stopped Docker containers according to a user-defined restart policy, including any dependent containers."
+readme = "README.md"
+requires-python = ">=3.13"
+classifiers = [
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+dependencies = [
+  "annotated-doc==0.0.3",
+  "annotated-types==0.7.0",
+  "anyio==4.11.0",
+  "apprise==1.9.5",
+  "argon2-cffi==25.1.0",
+  "argon2-cffi-bindings==25.1.0",
+  "bcrypt==5.0.0",
+  "certifi==2025.10.5",
+  "cffi==2.0.0",
+  "charset-normalizer==3.4.4",
+  "click==8.3.0",
+  "colorama==0.4.6",
+  "dnspython==2.8.0",
+  "docker==7.1.0",
+  "email-validator==2.3.0",
+  "fastapi==0.121.0",
+  "fastapi-cli==0.0.14",
+  "fastapi-cloud-cli==0.3.1",
+  "greenlet==3.2.4",
+  "h11==0.16.0",
+  "httpcore==1.0.9",
+  "httptools==0.7.1",
+  "httpx==0.28.1",
+  "idna==3.11",
+  "Jinja2==3.1.6",
+  "Markdown==3.10",
+  "markdown-it-py==4.0.0",
+  "MarkupSafe==3.0.3",
+  "mdurl==0.1.2",
+  "oauthlib==3.3.1",
+  "pycparser==2.23",
+  "pydantic==2.12.3",
+  "pydantic_core==2.41.4",
+  "Pygments==2.19.2",
+  "PyJWT==2.10.1",
+  "python-dotenv==1.1.1",
+  "python-multipart==0.0.20",
+  "pytz==2025.2",
+  'pywin32==311; sys_platform == "win32"',
+  "PyYAML==6.0.3",
+  "requests==2.32.5",
+  "requests-oauthlib==2.0.0",
+  "rich==14.2.0",
+  "rich-toolkit==0.15.1",
+  "rignore==0.7.4",
+  "sentry-sdk==2.43.0",
+  "shellingham==1.5.4",
+  "sniffio==1.3.1",
+  "SQLAlchemy==2.0.44",
+  "starlette==0.49.3",
+  "typer==0.20.0",
+  "typing-inspection==0.4.2",
+  "typing_extensions==4.15.0",
+  "tzdata==2025.2",
+  "urllib3==2.5.0",
+  "uvicorn==0.38.0",
+  "watchfiles==1.1.1",
+  "websockets==15.0.1"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[project.urls]
+Homepage = "https://github.com/kRYstall9/docker-surgeon"
+Issues = "https://github.com/kRYstall9/docker-surgeon/issues"
+
+[project.scripts]
+agent = "app.main:run_agent"
+server = "app.main:run_server"
