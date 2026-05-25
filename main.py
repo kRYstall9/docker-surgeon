@@ -34,6 +34,9 @@ def run_agent():
     
     from app.agent.agent_server import app as agent_app
     logger.info(f"Starting agent server at {config.agent_host}:{config.agent_port}")
+    if config.agent_host is None or config.agent_port is None:
+        logger.error("Agent host or port is not configured. Please set AGENT_HOST and AGENT_PORT in the environment variables.")
+        exit(1)
     uvicorn.run(agent_app, host=config.agent_host, port=config.agent_port)
 
 def run_server():
@@ -48,6 +51,9 @@ def run_server():
         logger.info(f"Starting agent client for {agent.name} at {agent.host}:{agent.port}")
         from app.agent.agent_client import AgentClient
         logger = AgentLogger(logger, extra={"agent_name": agent.name})
+        if agent.host is None or agent.port is None or agent.token is None:
+            logger.error(f"Agent {agent.name} is missing host, port or token configuration. Please check the AGENTS_CONFIG environment variable.")
+            continue
         agent_client = AgentClient(base_url=agent.base_url, token=agent.token, logger=logger)
         
         worker = Thread(target=monitor_containers, args=(config, logger, True, agent_client), daemon=True)

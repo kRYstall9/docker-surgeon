@@ -1,4 +1,4 @@
-def normalize_escapes(value: str) -> str:
+def normalize_escapes(value: str | None) -> str | None:
     """
     Converts \\n, \\t, \\r, \\uXXXX escape sequences
     into real characters.

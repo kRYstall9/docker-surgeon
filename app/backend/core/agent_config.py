@@ -5,7 +5,7 @@ class AgentConfig:
     name: str | None = None
     host: str | None = None
     port: int | None = None
-    token: str | None = None
+    token: str | None = field(default=None, repr=False)
     verify_ssl: bool = True
     
     @property
