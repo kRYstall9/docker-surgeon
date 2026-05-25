@@ -19,15 +19,15 @@ class Config:
     logs_amount:int
     dashboard_address:str
     dashboard_port:int
-    admin_password:str | None
+    admin_password:str | None = field(repr=False)
     enable_notifications:bool
-    notification_urls:list[str]
+    notification_urls:list[str] = field(repr=False)
     notification_title:str | None
     notification_body:str | None
     agents_config: list[AgentConfig] = field(default_factory=list)
-    agent_host: str | None = None
-    agent_port: int | None = None
-    agent_token: str | None = None
+    agent_host: str | None = field(default = None) 
+    agent_port: int | None = field(default = None)
+    agent_token: str | None = field(default = None, repr=False)
     
     @classmethod
     def load(cls):
