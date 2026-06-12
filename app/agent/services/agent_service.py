@@ -1,12 +1,13 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 import json
 from logging import Logger
 from docker import DockerClient
 from docker.models.containers import Container
 
 
-async def getEvents(client: DockerClient, logger: Logger):
+async def getEvents(client: DockerClient, logger: Logger, filters: Any):
     if client is None:
         raise ValueError("Docker client is not initialized")
     
@@ -15,7 +16,7 @@ async def getEvents(client: DockerClient, logger: Logger):
 
     def _stream():
         try:
-            for event in client.events(decode=True):
+            for event in client.events(decode=True, filters= filters):
                 if event.get("Type") == "container":
                     loop.call_soon_threadsafe(queue.put_nowait, json.dumps(event))
         except Exception as e:

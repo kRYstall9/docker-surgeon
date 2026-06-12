@@ -64,16 +64,21 @@ async def _watch_container_events(
         workers_amount=5,
     )
 
+    filters: Any = {
+        "event": ["die", "oom", "health_status"],
+        "type": "container"
+    }
+
     try:
         if not is_agent and client is not None:
-            for event in client.events(decode=True, filters= {"status": ['unhealthy']}):
+            for event in client.events(decode=True, filters=filters):
                 await event_queue.put(event)
         else:
             if agent_client is None:
                 logger.error("Agent client not initialized")
                 return
             
-            async for event in agent_client.stream_events():
+            async for event in agent_client.stream_events(filters=filters):
                 await event_queue.put(event)
 
     except Exception as e:
