@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import docker
+import docker, json
 from app.backend.core.state import logger, config
 from app.agent.services import agent_service
 from typing import Any
@@ -49,7 +49,8 @@ def restart_container(name: str | None = None, id: str | None = None, client=Dep
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.get("/events/stream", dependencies=[Depends(verify_token)])
-async def event_stream(filters:Any ,client=Depends(get_docker_client)):
+@app.post("/events/stream", dependencies=[Depends(verify_token)])
+async def event_stream(filters: dict, client=Depends(get_docker_client)):
     from fastapi.responses import StreamingResponse
+    print(filters)
     return StreamingResponse(agent_service.getEvents(client, logger, filters), media_type="text/event-stream")

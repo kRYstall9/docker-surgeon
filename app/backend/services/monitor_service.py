@@ -64,7 +64,7 @@ async def _watch_container_events(
         workers_amount=5,
     )
 
-    filters: Any = {
+    filters: dict = {
         "event": ["die", "oom", "health_status"],
         "type": "container"
     }
