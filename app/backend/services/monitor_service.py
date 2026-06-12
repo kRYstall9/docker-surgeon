@@ -21,7 +21,7 @@ def monitor_containers(
     config:Config, 
     logger:Logger, 
     is_agent:bool = False, 
-    agent_client: AgentClient = None):
+    agent_client: AgentClient | None = None):
     
     client:Any = None
     
@@ -40,22 +40,46 @@ def monitor_containers(
     asyncio.run(_watch_container_events(client, config.restart_policy, config.logs_amount, logger, is_agent, agent_client))
 
 async def _watch_container_events(
-    client: DockerClient, 
-    restart_policy:any, 
+    client: DockerClient | None, 
+    restart_policy: Any, 
     logs_amount:int, 
     logger:Logger, 
     is_agent:bool = False,
-    agent_client: AgentClient = None):
+    agent_client: AgentClient | None = None):
     
     already_processed = set()
     in_progress = set()
-    
-    if not is_agent:
-        for event in client.events(decode=True):
-            await _process_event(event, client=client, logger=logger, restart_policy=restart_policy, logs_amount=logs_amount, already_processed=already_processed, in_progress=in_progress)
-    else:
-        async for event in agent_client.stream_events():
-            await _process_event(event, is_agent=is_agent, agent_client=agent_client, logger=logger, restart_policy=restart_policy, logs_amount=logs_amount, already_processed=already_processed, in_progress=in_progress)
+    event_queue: asyncio.Queue = asyncio.Queue(maxsize=100)
+
+    workers = start_workers(
+        queue=event_queue,
+        agent_client=agent_client,
+        already_processed=already_processed,
+        client=client,
+        in_progress=in_progress,
+        is_agent=is_agent,
+        logger=logger,
+        logs_amount=logs_amount,
+        restart_policy=restart_policy,
+        workers_amount=5,
+    )
+
+    try:
+        if not is_agent and client is not None:
+            for event in client.events(decode=True, filters= {"status": ['unhealthy']}):
+                await event_queue.put(event)
+        else:
+            if agent_client is None:
+                logger.error("Agent client not initialized")
+                return
+            
+            async for event in agent_client.stream_events():
+                await event_queue.put(event)
+
+    except Exception as e:
+        logger.error(e)
+        workers.clear()
+        event_queue.empty()
 
 def _topological_sort(graph: dict) -> list:
     already_visited = set()
@@ -75,16 +99,23 @@ def _topological_sort(graph: dict) -> list:
     return stack[::-1]  # Invert the results
 
 async def _restart_with_graph(
-    client: DockerClient, 
+    client: DockerClient | None, 
     unhealthy_container, 
     already_processed: set, 
     in_progress: set, 
-    restart_policy:any, 
+    restart_policy:Any, 
     logger: Logger, 
     is_agent: bool = False,
-    agent_client: AgentClient = None):
+    agent_client: AgentClient | None = None):
     
-    containers = client.containers.list(all=True) if not is_agent else [ContainerProxy(container) for container in await agent_client.list_containers()]
+
+    # At this point, if not running via agent, client must be set
+    if not is_agent:
+        assert client is not None, logger.warning("Docker client not initialized")
+        containers = client.containers.list(all=True)
+    else:
+        assert agent_client is not None, logger.warning("Agent client not initialized")
+        containers = [ContainerProxy(container) for container in await agent_client.list_containers()]
     graph = _build_dependency_graph(containers)
     sorted_container_names = _topological_sort(graph)
     
@@ -122,7 +153,7 @@ async def _restart_with_graph(
         in_progress.add(container_name)
         try:
             container = await _get_container(client, name=container_name, is_agent=is_agent, agent_client=agent_client)
-            logger.info(f"Restarting container {container.name} ({container.id[:12]})")
+            logger.info(f"Restarting container {container.name} ({container.id[:12] if container.id is not None else ''})")
             
             if container.name in parents:
                 timeout = 60
@@ -171,7 +202,7 @@ async def _restart_with_graph(
     in_progress.clear()
     already_processed.clear()
 
-async def _getContainerStatusAndExitCode(container, logger: Logger, is_agent: bool = False, agent_client:AgentClient = None, ) -> dict:
+async def _getContainerStatusAndExitCode(container, logger: Logger, is_agent: bool = False, agent_client:AgentClient | None = None, ) -> dict:
     
     # Reload container object to get the latest state
     if not is_agent:
@@ -192,7 +223,7 @@ async def _canBeRestarted(
     logger: Logger, 
     check_on_children:bool = False,
     is_agent: bool = False,
-    agent_client: AgentClient = None) -> bool:
+    agent_client: AgentClient | None = None) -> bool:
     
     if container.name in restart_policy.get("excludedContainers", []):
         logger.debug(f"{container.name} won't be restarted due to the restart policy")
@@ -236,7 +267,7 @@ async def _parentSuccessfullyRestarted(
     container, 
     logger:Logger,
     is_agent: bool = False,
-    agent_client: AgentClient = None) -> bool:
+    agent_client: AgentClient | None = None) -> bool:
     """
     Checks if the parent container has successfully restarted
     """
@@ -274,7 +305,7 @@ async def _retry_pending_children(
     max_retries: int = 1, 
     delay: int = 10,
     is_agent: bool = False,
-    agent_client: AgentClient = None):
+    agent_client: AgentClient | None = None):
     """
     Tries to restart pending children
     """
@@ -334,13 +365,13 @@ def _build_dependency_graph(containers) -> dict:
                 graph[parent].append(name)
     return graph
 
-async def _restart_container(container, is_agent: bool = False, agent_client: AgentClient = None):
+async def _restart_container(container, is_agent: bool = False, agent_client: AgentClient | None = None):
     if not is_agent:
         container.restart()
     else:
         await agent_client.restart_container(name=container.name)
 
-async def _get_container(client, name: str | None = None, id: str | None = None, is_agent: bool = False, agent_client: AgentClient = None) -> ContainerProxy | Container:
+async def _get_container(client, name: str | None = None, id: str | None = None, is_agent: bool = False, agent_client: AgentClient | None = None) -> ContainerProxy | Container:
     try:
         if not is_agent:
             return client.containers.get(name) if name else client.containers.get(id)
@@ -350,7 +381,7 @@ async def _get_container(client, name: str | None = None, id: str | None = None,
     except Exception as e:
         raise RuntimeError(f"Error getting container: {e}")
     
-async def _get_container_logs(client, name: str | None = None, id: str | None = None, tail: int = 10, is_agent: bool = False, agent_client: AgentClient = None) -> str:
+async def _get_container_logs(client, name: str | None = None, id: str | None = None, tail: int = 10, is_agent: bool = False, agent_client: AgentClient | None = None) -> str:
     try:
         if not is_agent:
             container = await _get_container(client, name, id, is_agent, agent_client)
@@ -360,7 +391,7 @@ async def _get_container_logs(client, name: str | None = None, id: str | None = 
     except Exception as e:
         raise RuntimeError(f"Error getting container logs: {e}")
 
-async def _process_event(event, logger: Logger, restart_policy:Any, logs_amount:int, already_processed:set, in_progress:set, client: DockerClient | None = None, is_agent: bool = False, agent_client: AgentClient = None):
+async def _process_event(event, logger: Logger, restart_policy:Any, logs_amount:int, already_processed:set, in_progress:set, client: DockerClient | None = None, is_agent: bool = False, agent_client: AgentClient | None = None):
     try:
         if event.get("Type") != "container":
             return
@@ -397,9 +428,53 @@ async def _process_event(event, logger: Logger, restart_policy:Any, logs_amount:
             logs = await _get_container_logs(client, id=container_id, tail=logs_amount, is_agent=is_agent, agent_client=agent_client)
             crashed_container = CrashedContainerBase(container_id=container_id, container_name=container_object.name, logs=logs)
             CrashedContainerRepository.add_crashed_container(crashed_container, logger)
-            NotificationManager.container_crashed_event(container_name=container_object.name, container_logs=logs, container_exit_code=container_exit_code)
+            NotificationManager.container_crashed_event(container_name=container_object.name or '', container_logs=logs, container_exit_code=container_exit_code)
             await _restart_with_graph(client, container_object, already_processed, in_progress, restart_policy, logger, is_agent=is_agent, agent_client=agent_client)
 
     except Exception as e:
         # Added logging of the full event for easier debugging of new issues
         logger.error(f"Exception occurred: {e}. Event data: {event}")
+
+async def worker(name: str, queue: asyncio.Queue, logger: Logger, restart_policy: Any, client: DockerClient | None, agent_client: AgentClient | None, is_agent: bool, already_processed:set, in_progress:set, logs_amount: int = 10):
+
+    while True:
+        event = await queue.get()
+        try:
+            await _process_event(
+                event,
+                logger,
+                restart_policy,
+                logs_amount,
+                already_processed,
+                in_progress,
+                client,
+                is_agent,
+                agent_client
+            )
+        except Exception as e:
+            logger.error(f"Worker {name} error: {e}")
+        finally:
+            queue.task_done()
+
+def start_workers(queue: asyncio.Queue, logger: Logger, restart_policy: Any, client: DockerClient | None, agent_client: AgentClient | None, is_agent: bool, already_processed:set, in_progress:set, logs_amount: int = 10, workers_amount: int = 5):
+    workers = []
+    for i in range(workers_amount):
+        workers.append(
+            asyncio.create_task(
+                worker(
+                    name= f"worker-{i}",
+                    queue=queue,
+                    logger=logger,
+                    restart_policy=restart_policy,
+                    client=client,
+                    agent_client=agent_client,
+                    is_agent=is_agent,
+                    already_processed=already_processed,
+                    in_progress=in_progress,
+                    logs_amount=logs_amount
+                )
+            )
+        )
+
+    return workers
+

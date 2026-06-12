@@ -5,6 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "docker-surgeon"
 version = "1.4.2"
+authors = [
+  { name="kRYstall9" },
+]
 description = "Monitor and restart unhealthy, killed, or stopped Docker containers according to a user-defined restart policy, including any dependent containers."
 readme = "README.md"
 requires-python = ">=3.13"

@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import json
 from logging import Logger
 from docker import DockerClient
@@ -9,7 +10,7 @@ async def getEvents(client: DockerClient, logger: Logger):
     if client is None:
         raise ValueError("Docker client is not initialized")
     
-    queue = asyncio.Queue()
+    queue = asyncio.Queue(maxsize=100)
     loop = asyncio.get_event_loop()
 
     def _stream():

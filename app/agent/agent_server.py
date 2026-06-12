@@ -6,13 +6,14 @@ from app.agent.services import agent_service
 
 app = FastAPI()
 security = HTTPBearer()
+docker_client_from_env = docker.from_env()
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != config.agent_token:
+    if (config.agent_token is None) or (credentials.credentials != config.agent_token):
         raise HTTPException(status_code=403, detail="Invalid token")
 
 def get_docker_client():
-    return docker.from_env()
+    return docker_client_from_env
 
 @app.get("/health", dependencies=[Depends(verify_token)])
 def health_check(client=Depends(get_docker_client)):
