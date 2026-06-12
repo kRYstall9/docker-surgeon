@@ -39,7 +39,7 @@ class AgentClient:
     async def get_container_logs(self, name: str | None = None, id: str | None = None, tail: int = 10) -> str:
         return await self._request("GET", "/containers/logs", params={"name": name, "id": id, "tail": tail} if name or id else {})
     
-    async def stream_events(self, filters: dict):
+    async def stream_events(self):
         url = f"{self.base_url}/events/stream"
         delay = 2
         max_delay = 60
@@ -47,12 +47,11 @@ class AgentClient:
         while True:
             try:
                 try:
-                    async with self.http_client.stream("POST", url, headers=self.headers, json={"filters": json.dumps(filters)}) as response:
+                    async with self.http_client.stream("GET", url, headers=self.headers) as response:
                         response.raise_for_status()
                         self.logger.info(f"[Agent {self.base_url}] Connected to event stream")
                         delay = 2  # Reset delay on successful connection
                         async for line in response.aiter_lines():
-                            self.logger.debug(f"Received line from event stream: {line}")
                             if line and len(line) > 0:
                                 try:
                                     event = json.loads(line[5:].strip())  # Remove "data: " prefix

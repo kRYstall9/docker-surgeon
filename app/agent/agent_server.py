@@ -49,8 +49,7 @@ def restart_container(name: str | None = None, id: str | None = None, client=Dep
         raise HTTPException(status_code=500, detail=str(e))
     
 
-@app.post("/events/stream", dependencies=[Depends(verify_token)])
-async def event_stream(filters: dict, client=Depends(get_docker_client)):
+@app.get("/events/stream", dependencies=[Depends(verify_token)])
+async def event_stream(client=Depends(get_docker_client)):
     from fastapi.responses import StreamingResponse
-    print(filters)
-    return StreamingResponse(agent_service.getEvents(client, logger, filters), media_type="text/event-stream")
+    return StreamingResponse(agent_service.getEvents(client, logger), media_type="text/event-stream")

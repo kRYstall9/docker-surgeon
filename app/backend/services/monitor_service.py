@@ -64,21 +64,16 @@ async def _watch_container_events(
         workers_amount=5,
     )
 
-    filters: dict = {
-        "event": ["die", "oom", "health_status"],
-        "type": "container"
-    }
-
     try:
         if not is_agent and client is not None:
-            for event in client.events(decode=True, filters=filters):
+            for event in client.events(decode=True):
                 await event_queue.put(event)
         else:
             if agent_client is None:
                 logger.error("Agent client not initialized")
                 return
             
-            async for event in agent_client.stream_events(filters=filters):
+            async for event in agent_client.stream_events():
                 await event_queue.put(event)
 
     except Exception as e:
@@ -399,6 +394,12 @@ async def _get_container_logs(client, name: str | None = None, id: str | None = 
 async def _process_event(event, logger: Logger, restart_policy:Any, logs_amount:int, already_processed:set, in_progress:set, client: DockerClient | None = None, is_agent: bool = False, agent_client: AgentClient | None = None):
     try:
         if event.get("Type") != "container":
+            return
+        
+        action = event.get("Action", "")
+
+        if not any(action.startswith(x) for x in ["die", "oom", "health_status"]):
+            print("Returning since action is " + action)
             return
         
         container_id = None

@@ -7,23 +7,23 @@ from docker import DockerClient
 from docker.models.containers import Container
 
 
-async def getEvents(client: DockerClient, logger: Logger, filters: dict):
+async def getEvents(client: DockerClient, logger: Logger):
     if client is None:
         raise ValueError("Docker client is not initialized")
     
     queue = asyncio.Queue(maxsize=100)
     loop = asyncio.get_event_loop()
 
-    def _stream(filters:dict):
+    def _stream():
         try:
-            for event in client.events(decode=True, filters= filters):
+            for event in client.events(decode=True):
                 if event.get("Type") == "container":
                     loop.call_soon_threadsafe(queue.put_nowait, json.dumps(event))
         except Exception as e:
             loop.call_soon_threadsafe(queue.put_nowait, None)
             logger.error(f"Error while streaming events: {e}")
 
-    loop.run_in_executor(None, _stream, filters)
+    loop.run_in_executor(None, _stream)
 
     while True:
         item = await queue.get()
