@@ -1,7 +1,11 @@
+from __future__ import annotations
 from logging import Logger
 import re
-from app.backend.core.config import Config
-from app.backend.notifications import AppriseClient
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.backend.core import Config
+    from app.backend.notifications import AppriseClient
 
 
 class NotificationService:

@@ -1,9 +1,13 @@
+from __future__ import annotations
 from logging import Logger
-from app.backend.core import Config
-from app.backend.events import Event
-from app.backend.providers import ContainerProvider
-from app.backend.services import NotificationService, RestartService
 from time import time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.backend.core import Config
+    from app.backend.events import Event
+    from app.backend.providers import ContainerProvider
+    from app.backend.services import NotificationService, RestartService
 
 class EventHandlerService:
     # Seconds to wait after a container is restarted

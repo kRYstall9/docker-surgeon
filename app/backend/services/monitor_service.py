@@ -1,8 +1,12 @@
+from __future__ import annotations
 import asyncio
-from app.backend.core import Config
 from logging import Logger
-from app.backend.providers import ContainerProvider
-from app.backend.services import EventHandlerService
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.backend.core import Config
+    from app.backend.providers import ContainerProvider
+    from app.backend.services import EventHandlerService
 
 
 class MonitorService():

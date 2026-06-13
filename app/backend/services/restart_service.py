@@ -1,10 +1,13 @@
+from __future__ import annotations
 import asyncio
 from datetime import datetime
 from time import time
 from logging import Logger
-from typing import List
-from app.backend.models import ContainerProxy
-from app.backend.providers import ContainerProvider
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.backend.models import ContainerProxy
+    from app.backend.providers import ContainerProvider
 
 class RestartService:
     DOCKER_SURGEON_LABEL = "com.monitor.depends.on"
