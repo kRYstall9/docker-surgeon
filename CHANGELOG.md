@@ -1,3 +1,13 @@
+# [2.0.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.5.0...v2.0.0) (2026-06-13)
+
+
+* refactor(core)!: introduce Runtime and isolate server/agent execution ([516d473](https://github.com/kRYstall9/docker-surgeon/commit/516d473d6925ae2efe455f1ff7db85f991564913)), closes [#12](https://github.com/kRYstall9/docker-surgeon/issues/12)
+
+
+### BREAKING CHANGES
+
+* server, agent and dashboard must run same version due to runtime coupling.
+
 # [1.5.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.4.2...v1.5.0) (2026-04-14)
 
 
