@@ -26,12 +26,14 @@ def run_runtime(runtime: Runtime):
 def run_agent():
     config, logger = bootstrap()
 
-    from app.agent.agent_server import app as agent_app
+    from app.agent import AgentServer
     logger.info(f"Starting agent server at {config.agent_host}:{config.agent_port}")
     if config.agent_host is None or config.agent_port is None:
         logger.error("Agent host or port is not configured. Please set AGENT_HOST and AGENT_PORT in the environment variables.")
         exit(1)
-    uvicorn.run(agent_app, host=config.agent_host, port=config.agent_port)
+    
+    agent_server = AgentServer(config, logger)
+    agent_server.run()
 
 def run_server():
     config, logger = bootstrap()
