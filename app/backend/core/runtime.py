@@ -9,7 +9,7 @@ from app.backend.services import NotificationService
 from app.backend.services import RestartService
 
 
-class AgentRuntime:
+class Runtime:
     def __init__(self, config, logger, provider):
         self.config: Config = config
         self.logger: Logger = logger

@@ -4,8 +4,10 @@ from fastapi import FastAPI
 from app.backend.core import Config
 from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
-from app.agent.agent_runtime import AgentRuntime
+from app.backend.core.runtime import Runtime
 from threading import Thread
+from app.backend.providers import DockerClientProvider
+import docker
 
 
 def bootstrap():
@@ -18,15 +20,43 @@ def bootstrap():
 
     return config, logger
 
-def run_runtime(runtime: AgentRuntime):
+def run_runtime(runtime: Runtime):
     runtime.start()
 
+def run_agent():
+    config, logger = bootstrap()
+
+    from app.agent.agent_server import app as agent_app
+    logger.info(f"Starting agent server at {config.agent_host}:{config.agent_port}")
+    if config.agent_host is None or config.agent_port is None:
+        logger.error("Agent host or port is not configured. Please set AGENT_HOST and AGENT_PORT in the environment variables.")
+        exit(1)
+    uvicorn.run(agent_app, host=config.agent_host, port=config.agent_port)
 
 def run_server():
     config, logger = bootstrap()
 
     threads = []
     runtimes = []
+
+    # =========================
+    # 1. LOCAL DOCKER RUNTIME
+    # =========================
+    logger.info("Starting LOCAL docker runtime")
+
+    local_docker = docker.from_env()
+    local_provider = DockerClientProvider(local_docker)
+
+    local_runtime = Runtime(config, logger, local_provider)
+
+    t = Thread(
+        target=run_runtime,
+        args=(local_runtime,),
+        daemon=True
+    )
+    t.start()
+    threads.append(t)
+
     for agent in config.agents_config:
         logger.info(f"Starting agent {agent.name}")
 
@@ -48,7 +78,7 @@ def run_server():
 
         provider = AgentClientProvider(agent_client)
 
-        runtime = AgentRuntime(config, agent_logger, provider)
+        runtime = Runtime(config, agent_logger, provider)
         runtimes.append(runtime)
 
         t = Thread(
