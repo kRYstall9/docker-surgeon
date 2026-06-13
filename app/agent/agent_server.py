@@ -24,23 +24,23 @@ def list_containers(client=Depends(get_docker_client)):
     return agent_service.getContainers(client)
 
 @app.get('/containers/search', dependencies=[Depends(verify_token)])
-def get_container(name: str | None = None, id: str | None = None, client=Depends(get_docker_client)):
-    if not name and not id:
+def get_container(id: str | None = None, client=Depends(get_docker_client)):
+    if not id:
         raise HTTPException(status_code=400, detail="Either name or id must be provided")
-    return agent_service.getContainer(client, name, id)
+    return agent_service.getContainer(client, id)
 
 @app.get('/containers/logs', dependencies=[Depends(verify_token)])
-def get_container_logs(name: str | None = None, id: str | None = None, tail: int = 10, client=Depends(get_docker_client)):
-    if not name and not id:
+def get_container_logs(id: str | None = None, tail: int = 10, client=Depends(get_docker_client)):
+    if not id:
         raise HTTPException(status_code=400, detail="Either name or id must be provided")
-    return agent_service.getContainerLogs(client, name, id, tail)
+    return agent_service.getContainerLogs(client, id, tail)
 
 @app.post("/containers/restart", dependencies=[Depends(verify_token)])
-def restart_container(name: str | None = None, id: str | None = None, client=Depends(get_docker_client)):
-    if not name and not id:
+def restart_container(id: str | None = None, client=Depends(get_docker_client)):
+    if not id:
         raise HTTPException(status_code=400, detail="Either name or id must be provided")
     try:
-        return agent_service.restartContainer(client, name, id)
+        return agent_service.restartContainer(client,id)
     except docker.errors.NotFound:
         raise HTTPException(status_code=404, detail="Container not found")
     except docker.errors.APIError as e:

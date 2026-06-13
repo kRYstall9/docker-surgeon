@@ -27,17 +27,17 @@ class AgentClient:
     async def health_check(self) -> dict:
         return await self._request("GET", "/health")
 
-    async def list_containers(self) -> list[Any]:
+    async def list_containers(self) -> list[dict]:
         return await self._request("GET", "/containers")
 
-    async def restart_container(self, name: str | None = None, id: str | None = None) -> dict:
-        return await self._request("POST", f"/containers/restart", params={"name": name, "id": id} if name or id else {})
+    async def restart_container(self, id: str | None = None) -> dict:
+        return await self._request("POST", f"/containers/restart", params={"id": id} if id else {})
 
-    async def get_container(self, name: str | None = None, id: str | None = None):
-        return await self._request("GET", "/containers/search", params={"name": name, "id": id} if name or id else {})
+    async def get_container(self, id: str | None = None) -> dict:
+        return await self._request("GET", "/containers/search", params={"id": id} if id else {})
 
-    async def get_container_logs(self, name: str | None = None, id: str | None = None, tail: int = 10) -> str:
-        return await self._request("GET", "/containers/logs", params={"name": name, "id": id, "tail": tail} if name or id else {})
+    async def get_container_logs(self, id: str | None = None, tail: int = 10) -> str:
+        return await self._request("GET", "/containers/logs", params={"id": id, "tail": tail} if id else {})
     
     async def stream_events(self):
         url = f"{self.base_url}/events/stream"

@@ -4,6 +4,25 @@ from datetime import datetime
 import logging
 from logging import Logger
 
+class ContextLogger(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        prefix = []
+
+        if self.extra.get("agent_name"):
+            prefix.append(f"Agent={self.extra['agent_name']}")
+
+        if self.extra.get("container_name"):
+            prefix.append(f"Container={self.extra['container_name']}")
+
+        if self.extra.get("event"):
+            prefix.append(f"Event={self.extra['event']}")
+
+        if prefix:
+            msg = f"[{' | '.join(prefix)}] {msg}"
+
+        return msg, kwargs
+
+
 def get_logger(config:Config, name:str = __name__) -> Logger:
     
     try:
@@ -38,5 +57,8 @@ def get_bootstrap_logger() -> Logger:
         logger.addHandler(handler)
         
     return logger
+
+def get_context_logger(base_logger: Logger, **context):
+    return ContextLogger(base_logger, context)
     
     

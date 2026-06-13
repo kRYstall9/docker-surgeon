@@ -29,11 +29,13 @@ async def getEvents(client: DockerClient, logger: Logger):
             break
         yield f"data: {item}\n\n"
 
-def restartContainer(client: DockerClient, name: str | None = None, id: str | None = None) -> dict:
+def restartContainer(client: DockerClient, id: str | None = None):
     try:
-        container = getContainer(client, name, id, return_as_dict=False)
+        if not id:
+            raise ValueError("Either name or id must be provided")
+        
+        container = client.containers.get(id)
         container.restart()
-        return {"status": "restarted", "id": container.id, "name": container.name}
     except Exception as e:
         raise RuntimeError(f"Error restarting container: {e}")
 
@@ -44,24 +46,23 @@ def getContainers(client: DockerClient) -> list[dict]:
     except Exception as e:
         raise RuntimeError(f"Error listing containers: {e}")
     
-def getContainer(client: DockerClient, name: str | None = None, id: str | None = None, return_as_dict: bool = True) -> dict | Container:
+def getContainer(client: DockerClient, id: str | None = None) -> dict:
     try:
-        if name:
-            container = client.containers.get(name)
-        elif id:
+        if id:
             container = client.containers.get(id)
         else:
             raise ValueError("Either name or id must be provided")
         
-        if return_as_dict:
-            return _serialize_container(container)
-        return container
+        return _serialize_container(container)
     except Exception as e:
         raise RuntimeError(f"Error getting container: {e}")
 
-def getContainerLogs(client: DockerClient, name: str | None = None, id: str | None = None, tail: int = 10) -> str:
+def getContainerLogs(client: DockerClient, id: str | None = None, tail: int = 10) -> str:
     try:
-        container = getContainer(client, name, id, return_as_dict=False)
+        if not id:
+            raise ValueError("Either name or id must be provided")
+        
+        container = client.containers.get(id)
         logs = container.logs(tail=tail).decode('utf-8', errors='ignore')
         return logs
     except Exception as e:
@@ -74,6 +75,5 @@ def _serialize_container(container: Container) -> dict:
         "name": container.name,
         "status": container.status,
         "labels": container.labels,
-        "image": container.image.tags,
         "attrs": container.attrs
     }
