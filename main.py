@@ -1,6 +1,3 @@
-import uvicorn
-from fastapi import FastAPI
-
 from app.backend.core import Config
 from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
@@ -93,16 +90,34 @@ def run_server():
         threads.append(t)
 
     if config.enable_dashboard:
-        app = FastAPI()
-
+        import uvicorn
+        from fastapi import FastAPI
+        from fastapi.staticfiles import StaticFiles
         from app.backend.api.api_router import api_router
+        from fastapi.responses import FileResponse
+        from os import path
+
+        logger.info("Starting FastAPI server for Docker Surgeon API...")
+        DASHBOARD_DIR = "app/dashboard_build"
+
+        app = FastAPI(
+            title="Docker Surgeon API",
+            description="A tool to monitor and manage Docker containers."
+        )  
+
+        app.mount(
+            "/assets",
+            StaticFiles(directory=f"{DASHBOARD_DIR}/assets"),
+            name="assets"
+        )
         app.include_router(api_router, prefix="/api")
 
-        uvicorn.run(
-            app,
-            host=config.dashboard_address,
-            port=config.dashboard_port
-        )
+        @app.get("/{full_path:path}")
+        def serve_dashboard(full_path: str):
+            return FileResponse(path.join(DASHBOARD_DIR, "index.html"))
+        
+        uvicorn.run(app, host= config.dashboard_address, port= config.dashboard_port, reload=False)
+        logger.info("FastAPI server started")
 
     for t in threads:
         t.join()
