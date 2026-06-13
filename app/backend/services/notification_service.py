@@ -2,10 +2,10 @@ from __future__ import annotations
 from logging import Logger
 import re
 from typing import TYPE_CHECKING
+from app.backend.notifications import AppriseClient
 
 if TYPE_CHECKING:
     from app.backend.core import Config
-    from app.backend.notifications import AppriseClient
 
 
 class NotificationService:
