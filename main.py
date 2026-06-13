@@ -1,8 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 
-from app.backend.core.config import Config
-from app.backend.core.logger import get_bootstrap_logger, get_logger
+from app.backend.core import Config
+from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
 from app.agent.agent_runtime import AgentRuntime
 from threading import Thread
@@ -35,8 +35,8 @@ def run_server():
             continue
         
         from app.agent.utils.agent_logger import AgentLogger
-        from app.agent.agent_client import AgentClient
-        from app.backend.providers.agent_client_provider import AgentClientProvider
+        from app.agent import AgentClient
+        from app.backend.providers import AgentClientProvider
 
         agent_logger = AgentLogger(logger, extra={"agent_name": agent.name})
 

@@ -3,8 +3,8 @@ from datetime import datetime
 from time import time
 from logging import Logger
 from typing import List
-from app.backend.models.container_proxy import ContainerProxy
-from app.backend.providers.container_provider import ContainerProvider
+from app.backend.models import ContainerProxy
+from app.backend.providers import ContainerProvider
 
 class RestartService:
     DOCKER_SURGEON_LABEL = "com.monitor.depends.on"

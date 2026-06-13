@@ -1,4 +1,9 @@
-from app.backend.providers.container_provider import ContainerProvider
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.backend.providers import ContainerProvider
+    
 from docker.models.containers import Container
 
 

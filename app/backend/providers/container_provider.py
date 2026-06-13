@@ -1,7 +1,10 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, List
-from app.backend.events.event import Event
-from app.backend.models.container_proxy import ContainerProxy
+from typing import AsyncIterator, List, TYPE_CHECKING
+from app.backend.events import Event
+
+if TYPE_CHECKING:
+    from app.backend.models import ContainerProxy
 
 class ContainerProvider(ABC):
 

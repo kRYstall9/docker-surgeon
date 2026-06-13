@@ -1,8 +1,8 @@
 import asyncio
-from app.backend.core.config import Config
+from app.backend.core import Config
 from logging import Logger
-from app.backend.providers.container_provider import ContainerProvider
-from app.backend.services.event_handler_service import EventHandlerService
+from app.backend.providers import ContainerProvider
+from app.backend.services import EventHandlerService
 
 
 class MonitorService():

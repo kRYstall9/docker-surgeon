@@ -1,9 +1,8 @@
 from logging import Logger
-from app.backend.core.config import Config
-from app.backend.events.event import Event
-from app.backend.providers.container_provider import ContainerProvider
-from app.backend.services.notification_service import NotificationService
-from app.backend.services.restart_service import RestartService
+from app.backend.core import Config
+from app.backend.events import Event
+from app.backend.providers import ContainerProvider
+from app.backend.services import NotificationService, RestartService
 from time import time
 
 class EventHandlerService:

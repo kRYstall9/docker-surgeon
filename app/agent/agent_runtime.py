@@ -1,12 +1,12 @@
 import asyncio
 from logging import Logger
 
-from app.backend.core.config import Config
-from app.backend.providers.container_provider import ContainerProvider
-from app.backend.services.event_handler_service import EventHandlerService
-from app.backend.services.monitor_service import MonitorService
-from app.backend.services.notification_service import NotificationService
-from app.backend.services.restart_service import RestartService
+from app.backend.core import Config
+from app.backend.providers import ContainerProvider
+from app.backend.services import EventHandlerService
+from app.backend.services import MonitorService
+from app.backend.services import NotificationService
+from app.backend.services import RestartService
 
 
 class AgentRuntime:

@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Any, ClassVar
 from dotenv import load_dotenv
 from os import getenv
-from app.backend.core.agent_config import AgentConfig
+from app.backend.core import AgentConfig
 from app.backend.utils.string_utils import normalize_escapes
 
 @dataclass

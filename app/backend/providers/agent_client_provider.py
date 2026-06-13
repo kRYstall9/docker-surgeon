@@ -1,9 +1,9 @@
 from typing import AsyncIterator
 
-from app.agent.agent_client import AgentClient
-from app.backend.events.event import Event
-from app.backend.models.container_proxy import ContainerProxy
-from app.backend.providers.container_provider import ContainerProvider
+from app.agent import AgentClient
+from app.backend.events import Event
+from app.backend.models import ContainerProxy
+from app.backend.providers import ContainerProvider
 
 
 class AgentClientProvider(ContainerProvider):

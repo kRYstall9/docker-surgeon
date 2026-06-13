@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from app.backend.core.security import require_admin
 from app.backend.schemas.crashed_container_schema import CrashedContainerLogs
 from app.backend.schemas.chart_stats_schema import ChartStats
-from app.backend.services.stats_service import StatsService
+from app.backend.services import StatsService
 
 router = APIRouter(prefix="/crashed_containers", tags=["Crashed Containers"], dependencies=[Depends(require_admin)])
 

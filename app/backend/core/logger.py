@@ -1,4 +1,4 @@
-from app.backend.core.config import Config
+from app.backend.core import Config
 import pytz
 from datetime import datetime
 import logging

@@ -3,9 +3,9 @@ from typing import AsyncIterator
 
 from docker import DockerClient
 
-from app.backend.events.event import Event
-from app.backend.models.container_proxy import ContainerProxy
-from app.backend.providers.container_provider import ContainerProvider
+from app.backend.events import Event
+from app.backend.models import ContainerProxy
+from app.backend.providers import ContainerProvider
 
 
 class DockerClientProvider(ContainerProvider):

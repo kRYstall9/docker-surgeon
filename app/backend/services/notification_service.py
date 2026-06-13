@@ -1,7 +1,7 @@
 from logging import Logger
 import re
 from app.backend.core.config import Config
-from app.backend.notifications.apprise_client import AppriseClient
+from app.backend.notifications import AppriseClient
 
 
 class NotificationService:
