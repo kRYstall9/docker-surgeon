@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response, HTTPException
-from app.backend.core.config import Config
+from app.backend.core import Config
 from app.backend.core.password_utils import verify_hash
 from app.backend.core.security import create_token
 

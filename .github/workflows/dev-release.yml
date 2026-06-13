@@ -29,7 +29,7 @@ jobs:
       - name: Build and Push dev image
         run: |
           IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/docker-surgeon
-          DEV_TAG=dev-$(date +%Y%m%d-%H%M%S)
+          DEV_TAG=dev-${{github.sha}}
           echo "🚀 Building image: $IMAGE_NAME:dev"
 
           docker buildx build \
