@@ -6,6 +6,7 @@ import docker
 import uvicorn
 from app.agent.services import AgentService
 from logging import Logger
+from docker.errors import NotFound, APIError
 
 if TYPE_CHECKING:
     from app.backend.core import Config
@@ -61,9 +62,9 @@ class AgentServer:
                 raise HTTPException(status_code=400, detail="Either name or id must be provided")
             try:
                 return self.service.restart_container(id)
-            except docker.errors.NotFound:
+            except NotFound:
                 raise HTTPException(status_code=404, detail="Container not found")
-            except docker.errors.APIError as e:
+            except APIError as e:
                 raise HTTPException(status_code=500, detail=str(e))
             
 
