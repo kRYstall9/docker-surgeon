@@ -1,17 +1,9 @@
-import asyncio
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.backend.core.config import Config
 from app.backend.core.logger import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
-from app.backend.notifications.apprise_client import AppriseClient
-from app.backend.services.monitor_service import MonitorService
-from app.backend.services.event_handler_service import EventHandlerService
-from app.backend.services.restart_service import RestartService
-from app.backend.services.notification_service import NotificationService
-from app.backend.providers.container_provider import ContainerProvider
 from app.agent.agent_runtime import AgentRuntime
 from threading import Thread
 
@@ -79,6 +71,6 @@ def run_server():
             host=config.dashboard_address,
             port=config.dashboard_port
         )
-        
+
     for t in threads:
         t.join()
