@@ -79,12 +79,16 @@ class AgentService:
             raise RuntimeError(f"Error getting container logs: {e}")
         
     def _serialize_container(self, container: Container) -> dict:
+        attrs = container.attrs
+        
         return {
-            "id": container.id,
-            "short_id": container.short_id,
-            "name": container.name,
-            "status": container.status,
-            "labels": container.labels,
-            "attrs": container.attrs
-        }
+                "id": container.id,
+                "name": container.name,
+                "labels": container.labels,
+                "state": attrs.get("State", {}),
+                "health": attrs.get("State", {}).get("Health", {}),
+                "health_status": attrs.get("State", {}).get("Health", {}).get("Status", "unknown"),
+                "exit_code": attrs.get("State", {}).get("ExitCode"),
+                "status": attrs.get("State", {}).get("Status", "unknown")
+            }
 
