@@ -79,6 +79,6 @@ def run_server():
             host=config.dashboard_address,
             port=config.dashboard_port
         )
-    else:
-        for t in threads:
-            t.join()
+        
+    for t in threads:
+        t.join()
