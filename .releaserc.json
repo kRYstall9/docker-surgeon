@@ -10,6 +10,7 @@
         "prepareCmd": "echo ${nextRelease.version} > VERSION && sed -i 's/^version = .*/version = \"${nextRelease.version}\"/' pyproject.toml"
       }
     ],
-    "@semantic-release/git"
+    "@semantic-release/git",
+    "@semantic-release/github"
   ]
 }
