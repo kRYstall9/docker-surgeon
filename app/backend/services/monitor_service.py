@@ -16,7 +16,7 @@ class MonitorService():
         self.config = config
         self.logger = logger
         self.handler = handler
-        self.queue = asyncio.Queue(maxsize=100)
+        self.queue = asyncio.Queue(maxsize=500)
         self.workers: list[asyncio.Task] = []
 
     
