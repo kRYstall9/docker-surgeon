@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 
 class RestartService:
     DOCKER_SURGEON_LABEL = "com.monitor.depends.on"
+    CACHE_GRAPH_TIME_AMOUNT = 600
     
     def __init__(self, restart_policy: dict, client: ContainerProvider, logger: Logger):
         self.restart_policy = restart_policy
         self.logger = logger
         self.client = client
         self.in_progress = set()
-        self.cache_graph_time_amount = 600
         self.graph = {}
         self.last_graph_load_time = 0
         self.lock = asyncio.Lock()
@@ -50,8 +50,6 @@ class RestartService:
             return False
         
         excluded_exit_codes = policy.get("codesToExclude", [])
-        
-        self.logger.debug(f"POLICY EXCLUDED EXIT CODES: {excluded_exit_codes}")
         
         # Container has to pass any of these checks to be restarted:
         # 1) Container is unhealthy
@@ -105,7 +103,7 @@ class RestartService:
         
         containers = await self.client.list_containers()
 
-        if self.graph == {} or ((time() - self.last_graph_load_time) > self.cache_graph_time_amount):
+        if self.graph == {} or ((time() - self.last_graph_load_time) > self.CACHE_GRAPH_TIME_AMOUNT):
             self.graph = self._build_dependency_graph(containers)
             self.last_graph_load_time = time()
 

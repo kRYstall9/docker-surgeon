@@ -35,7 +35,7 @@ def run_agent():
 def run_server():
     config, logger = bootstrap()
 
-    threads = []
+    threads: list[Thread] = []
     runtimes = []
 
     # =========================
