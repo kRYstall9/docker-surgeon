@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.backend.events import Event
     from app.backend.providers import ContainerProvider
     from app.backend.services import NotificationService, RestartService
+    from app.agent import AgentClient
 
 class EventHandlerService:
     # Seconds to wait after a container is restarted
@@ -43,7 +44,8 @@ class EventHandlerService:
                 logs = await self.client.get_logs(container.id or container.name, self.config.logs_amount)
                 await self.restart_service.restart_with_graph(container)
 
-                await self.notification_service.notify(container.name, logs, container.exit_code or '')
+                agent_name: str | None = self.client.client.name if type(self.client.client) is AgentClient else None
+                await self.notification_service.notify(container.name, logs, container.exit_code or '', agent_name)
 
                 self.cooldown[container.id or container.name] = time()
         except Exception as e:

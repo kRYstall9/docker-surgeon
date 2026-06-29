@@ -72,7 +72,8 @@ def run_server():
         agent_client = AgentClient(
             base_url=agent.base_url,
             token=agent.token,
-            logger=logger
+            logger=logger,
+            name=agent.name
         )
 
         provider = AgentClientProvider(agent_client)
