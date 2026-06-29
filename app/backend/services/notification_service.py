@@ -29,9 +29,9 @@ class NotificationService:
                 "agent_name": agent_name
             }
             
-            agent_substr_title:str = '⚠️ ' + '[{agent_name}] ' if agent_name is not None else '' + '{container_name} crashed'
+            notification_title:str = '⚠️ ' + ('[{agent_name}] ' if agent_name is not None else '') + '{container_name} crashed'
 
-            title = (self.config.notification_title or agent_substr_title).format(**context)
+            title = (self.config.notification_title or notification_title).format(**context)
             body = (self.config.notification_body or '`exit code`: `{exit_code}`\nLast {n_logs} logs of `{container_name}`: {logs}').format(**context)
             self.client.send(body=body, title=title)
         
