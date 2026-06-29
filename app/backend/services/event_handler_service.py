@@ -31,6 +31,8 @@ class EventHandlerService:
 
     async def handle(self, event: Event):
         try:
+            self.logger.debug(f"Handling event {event.type} for container {event.container_name}")
+
             container = await self.client.get_container(event.container_id or event.container_name)
             if container is None:
                 return
