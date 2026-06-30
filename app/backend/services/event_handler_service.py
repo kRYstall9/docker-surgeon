@@ -3,6 +3,8 @@ from logging import Logger
 from time import time
 from typing import TYPE_CHECKING
 from app.agent import AgentClient
+from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
+from app.backend.schemas.crashed_container_schema import CrashedContainerBase
 
 if TYPE_CHECKING:
     from app.backend.core import Config
@@ -49,6 +51,10 @@ class EventHandlerService:
 
                 agent_name: str | None = self.client.client.name if type(self.client.client) is AgentClient else None
                 await self.notification_service.notify(container.name, logs, container.exit_code or '', agent_name)
+                
+                ## Add record to the CrashedContainer table
+                crashed_container = CrashedContainerBase(container_id=container.id, container_name=container.name, logs=logs)
+                CrashedContainerRepository.add_crashed_container(crashed_container, self.logger)
 
                 self.cooldown[container.id or container.name] = time()
         except Exception as e:
