@@ -24,6 +24,7 @@ def apply_migrations(logger:Logger):
 
     alembic_cfg = Config('alembic.ini')
     alembic_cfg.set_main_option('sqlalchemy.url', DB_URI)
+    alembic_cfg.set_main_option('script_location', 'app/DBMigrations')
 
     with engine.connect() as conn:
 
