@@ -29,8 +29,9 @@ def apply_migrations(logger:Logger):
     with engine.connect() as conn:
 
         if not has_alembic_version(conn):
-            logger.info("Legacy database detected, stamping initial version")
-            command.stamp(alembic_cfg, INITIAL_MIGRATION_ID)
+            if has_table('crashed_containers', conn):
+                logger.info("Legacy database detected, stamping initial version")
+                command.stamp(alembic_cfg, INITIAL_MIGRATION_ID)
         
         logger.info('Applying pending migrations')
         command.upgrade(alembic_cfg, 'head')
@@ -40,4 +41,11 @@ def has_alembic_version(conn):
         conn.execute(text('SELECT 1 FROM alembic_version LIMIT 1'))
         return True
     except Exception:
+        return False
+
+def has_table(table_name: str, conn) -> bool:
+    try:
+        conn.execute(text(f'SELECT 1 FROM {table_name} LIMIT 1'))
+        return True
+    except Exception as e:
         return False
