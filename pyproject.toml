@@ -93,6 +93,7 @@ dependencies = [
   "pycparser>=2.23",
   # Windows only
   'pywin32==311; sys_platform == "win32"',
+  "alembic>=1.18.5",
 ]
 
 [project.urls]
