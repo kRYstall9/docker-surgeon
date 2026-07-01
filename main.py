@@ -10,10 +10,13 @@ import docker
 
 
 def bootstrap():
+    import time
+
     logger = get_bootstrap_logger()
 
     config = Config.load()
     os.environ["TZ"] = config.timezone
+    time.tzset()
     logger = get_logger(config)
 
     init_db(logger)
