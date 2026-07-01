@@ -72,7 +72,7 @@ export function LogsViewer({ logs }: LogsViewerProps) {
 
       <div className="md:col-span-8 bg-[#242424] rounded-xl flex flex-col min-h-[350px] md:h-[55vh]">
         {selected ? (
-          <>
+          <div className="text-left">
             <div className="border-b border-neutral-700 px-5 py-3">
               <h2 className="font-semibold text-lg">
                 {selected.container_name}
@@ -86,7 +86,7 @@ export function LogsViewer({ logs }: LogsViewerProps) {
             <pre className="flex-1 overflow-auto p-5 text-xs font-mono whitespace-pre-wrap leading-5">
               {selected.logs}
             </pre>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 text-gray-500">
             <FileText size={'2rem'} className="mb-3 opacity-60" />
