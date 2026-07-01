@@ -1,3 +1,5 @@
+import os
+
 from app.backend.core import Config
 from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
@@ -11,10 +13,10 @@ def bootstrap():
     logger = get_bootstrap_logger()
 
     config = Config.load()
+    os.environ["TZ"] = config.timezone
     logger = get_logger(config)
 
     init_db(logger)
-
     return config, logger
 
 def run_runtime(runtime: Runtime):

@@ -24,16 +24,7 @@ class ContextLogger(logging.LoggerAdapter):
 
 
 def get_logger(config:Config, name:str = __name__) -> Logger:
-    
-    try:
-        tz = pytz.timezone(config.timezone)
-    except Exception:
-        tz = pytz.UTC
-        logging.warning(f"Timezone '{config.timezone}' not valid. Using UTC")
-        
-    def time_in_tz(*args):
-        return datetime.now(tz).timetuple()
-    
+  
     logger = logging.getLogger(name)
     logger.setLevel(config.log_level)
     logger.propagate = False
@@ -41,7 +32,6 @@ def get_logger(config:Config, name:str = __name__) -> Logger:
     if not logger.handlers:
         handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - Func: %(funcName)s - [MSG]: %(message)s')
-        formatter.converter = time_in_tz
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     
