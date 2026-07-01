@@ -6,6 +6,7 @@ class CrashedContainerBase(BaseModel):
     container_id:str
     container_name: str | None = None
     logs:str
+    machine: str
     
 class CrashedContainerLogs(CrashedContainerBase):
     crashed_on:datetime

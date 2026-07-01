@@ -52,8 +52,11 @@ class EventHandlerService:
                 agent_name: str | None = self.client.client.name if type(self.client.client) is AgentClient else None
                 await self.notification_service.notify(container.name, logs, container.exit_code or '', agent_name)
                 
+                # If the agent name is not available, the event happened on the server, so we set the machine to 'Server'. Otherwise, we set it to the agent name.
+                machine = agent_name if agent_name else 'Server'
+
                 ## Add record to the CrashedContainer table
-                crashed_container = CrashedContainerBase(container_id=container.id, container_name=container.name, logs=logs)
+                crashed_container = CrashedContainerBase(container_id=container.id, container_name=container.name, logs=logs, machine=machine)
                 CrashedContainerRepository.add_crashed_container(crashed_container, self.logger)
 
                 self.cooldown[container.id or container.name] = time()

@@ -16,7 +16,8 @@ class CrashedContainerRepository:
                 logs = ct_crashed.logs,
                 crashedon = datetime.now(),
                 container_id = ct_crashed.container_id,
-                container_name = ct_crashed.container_name
+                container_name = ct_crashed.container_name,
+                machine = ct_crashed.machine
             )
             
             db.add(crashed_container)
@@ -36,15 +37,16 @@ class CrashedContainerRepository:
             date_to_str = date_to.strftime("%Y-%m-%d")
             
             
-            crashed_containers = db.query(CrashedContainer.container_id, CrashedContainer.container_name, CrashedContainer.logs, CrashedContainer.crashedon).filter(crash_date >= date_from_str, crash_date <= date_to_str).order_by(CrashedContainer.crashedon.asc()).all()
+            crashed_containers = db.query(CrashedContainer.container_id, CrashedContainer.container_name, CrashedContainer.logs, CrashedContainer.crashedon, CrashedContainer.machine).filter(crash_date >= date_from_str, crash_date <= date_to_str).order_by(CrashedContainer.crashedon.asc()).all()
             return [
                 CrashedContainerLogs(
                     container_id=container_id,
                     container_name=container_name,
                     crashed_on=crashed_on,
-                    logs=logs
+                    logs=logs,
+                    machine = machine
                 )
-                for container_id, container_name, logs, crashed_on in crashed_containers
+                for container_id, container_name, logs, crashed_on, machine in crashed_containers
             ]
 
     @staticmethod
@@ -61,7 +63,8 @@ class CrashedContainerRepository:
                     CrashedContainer.container_id,
                     CrashedContainer.container_name, 
                     func.count(CrashedContainer.container_id).label('crash_count'),
-                    crash_date.label("crash_date")
+                    crash_date.label("crash_date"),
+                    CrashedContainer.machine
                 )
                 .filter(
                     crash_date >= date_from_str,
@@ -69,7 +72,8 @@ class CrashedContainerRepository:
                 )
                 .group_by(
                     crash_date,
-                    CrashedContainer.container_name
+                    CrashedContainer.container_name,
+                    CrashedContainer.machine
                 )
                 .order_by(
                     crash_date.asc(),
@@ -83,7 +87,8 @@ class CrashedContainerRepository:
                     crashed_on = crash_date,
                     container_id=containerid,
                     container_name=containername,
-                    crash_count=crash_count
+                    crash_count=crash_count,
+                    machine=machine
                 )
-                for containerid, containername, crash_count, crash_date in rows
+                for containerid, containername, crash_count, crash_date, machine in rows
             ]
