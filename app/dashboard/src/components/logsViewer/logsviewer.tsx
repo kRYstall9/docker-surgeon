@@ -16,10 +16,34 @@ export function LogsViewer({ logs }: LogsViewerProps) {
   const [expandedMachine, setExpandedMachine] = useState<string | null>(null);
   const [selected, setSelected] = useState<CrashedContainerLogs | null>(null);
 
+  const mergedLogs: Record<string, CrashedContainerLogs[]> = Object.fromEntries(
+    Object.entries(logs).map(([machine, containers]) => {
+      const map = new Map<string, CrashedContainerLogs>();
+
+      for (const c of containers) {
+        const existing = map.get(c.container_id);
+
+        if (!existing) {
+          map.set(c.container_id, {
+            ...c,
+            logs: c.logs,
+          });
+        } else {
+          map.set(c.container_id, {
+            ...existing,
+            logs: `${existing.logs}\n\n${c.logs}`,
+          });
+        }
+      }
+
+      return [machine, Array.from(map.values())] as const;
+    })
+  );
+
   return (
     <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-4">
       <div className="md:col-span-4 bg-[#242424] rounded-xl overflow-y-auto p-3 h-[250px] md:h-[55vh]">
-        {Object.entries(logs).map(([machine, containers]) => (
+        {Object.entries(mergedLogs).map(([machine, containers]) => (
           <div key={machine} className="mb-2">
             <button
               onClick={() =>
@@ -70,9 +94,9 @@ export function LogsViewer({ logs }: LogsViewerProps) {
         ))}
       </div>
 
-      <div className="md:col-span-8 bg-[#242424] rounded-xl flex flex-col min-h-[350px] md:h-[55vh]">
+      <div className="md:col-span-8 bg-[#242424] rounded-xl flex flex-col h-[350px] md:h-[55vh] overflow-y-auto">
         {selected ? (
-          <div className="text-left">
+          <div className="text-center">
             <div className="border-b border-neutral-700 px-5 py-3">
               <h2 className="font-semibold text-lg">
                 {selected.container_name}
@@ -83,7 +107,7 @@ export function LogsViewer({ logs }: LogsViewerProps) {
               </p>
             </div>
 
-            <pre className="flex-1 overflow-auto p-5 text-xs font-mono whitespace-pre-wrap leading-5">
+            <pre className="flex-1 overflow-auto p-5 text-xs font-mono whitespace-pre-wrap leading-5 text-left">
               {selected.logs}
             </pre>
           </div>
