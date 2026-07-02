@@ -29,7 +29,7 @@ def apply_migrations(logger:Logger):
     with engine.connect() as conn:
 
         if not has_alembic_version(conn):
-            if has_table('crashed_containers', conn):
+            if has_table('crashedcontainers', conn):
                 logger.info("Legacy database detected, stamping initial version")
                 command.stamp(alembic_cfg, INITIAL_MIGRATION_ID)
         
