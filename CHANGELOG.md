@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.0...v2.1.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* replace misspelled table name ([be49417](https://github.com/kRYstall9/docker-surgeon/commit/be494172847bef27fb9dc84cfaafc9ff1291447b))
+
 # [2.1.0](https://github.com/kRYstall9/docker-surgeon/compare/v2.0.0...v2.1.0) (2026-07-02)
 
 
