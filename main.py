@@ -1,3 +1,5 @@
+import os
+
 from app.backend.core import Config
 from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db
@@ -8,13 +10,16 @@ import docker
 
 
 def bootstrap():
+    import time
+
     logger = get_bootstrap_logger()
 
     config = Config.load()
+    os.environ["TZ"] = config.timezone
+    time.tzset()
     logger = get_logger(config)
 
     init_db(logger)
-
     return config, logger
 
 def run_runtime(runtime: Runtime):
@@ -35,7 +40,7 @@ def run_agent():
 def run_server():
     config, logger = bootstrap()
 
-    threads = []
+    threads: list[Thread] = []
     runtimes = []
 
     # =========================
@@ -56,6 +61,9 @@ def run_server():
     t.start()
     threads.append(t)
 
+    # =========================
+    # 2. AGENT/S RUNTIME
+    # =========================
     for agent in config.agents_config:
         logger.info(f"Starting agent {agent.name}")
 
@@ -72,7 +80,8 @@ def run_server():
         agent_client = AgentClient(
             base_url=agent.base_url,
             token=agent.token,
-            logger=logger
+            logger=logger,
+            name=agent.name
         )
 
         provider = AgentClientProvider(agent_client)

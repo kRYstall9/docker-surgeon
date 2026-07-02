@@ -16,7 +16,7 @@ class NotificationService:
         self.logger = logger
         self.client = AppriseClient(self.config.notification_urls)
     
-    async def notify(self, container_name:str, container_logs:str, container_exit_code:str):
+    async def notify(self, container_name:str, container_logs:str, container_exit_code:str, agent_name:str | None = None):
         
         self.logger.info("Sending notifications")
         
@@ -25,10 +25,13 @@ class NotificationService:
                 "container_name": container_name,
                 "logs": self.ANSI_ESCAPE.sub('',container_logs),
                 "exit_code": container_exit_code,
-                "n_logs": self.config.logs_amount
+                "n_logs": self.config.logs_amount,
+                "agent_name": agent_name
             }
             
-            title = (self.config.notification_title or '⚠️ {container_name} crashed').format(**context)
+            notification_title:str = '⚠️ ' + ('Agent: {agent_name} | ' if agent_name is not None else '') + '{container_name} crashed'
+
+            title = (self.config.notification_title or notification_title).format(**context)
             body = (self.config.notification_body or '`exit code`: `{exit_code}`\nLast {n_logs} logs of `{container_name}`: {logs}').format(**context)
             self.client.send(body=body, title=title)
         

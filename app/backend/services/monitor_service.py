@@ -16,7 +16,7 @@ class MonitorService():
         self.config = config
         self.logger = logger
         self.handler = handler
-        self.queue = asyncio.Queue(maxsize=100)
+        self.queue = asyncio.Queue(maxsize=500)
         self.workers: list[asyncio.Task] = []
 
     
@@ -30,13 +30,14 @@ class MonitorService():
         async for event in self.client.stream_events():
             try:
                 if not any(event.type.startswith(x) for x in self.ALLOWED_EVENT_TYPE):
-                    self.logger.debug(f"Skipping event {event.type}")
+                    self.logger.debug(f"Skipping event {event.type} for container {event.container_name}")
                     continue
                 
                 if self.queue.full():
-                    self.logger.warning("Event queue full, dropping event")
+                    self.logger.warning(f"Event queue full, dropping event {event.type} for container {event.container_name}")
                     continue
-
+                
+                self.logger.debug(f"Inserting event {event.type} for container {event.container_name} into the event queue")
                 await self.queue.put(event)
             except Exception as e:
                 self.logger.error(f"An error occured while reading an event. Error: {e}")

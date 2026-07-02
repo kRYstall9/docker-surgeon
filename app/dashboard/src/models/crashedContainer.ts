@@ -2,6 +2,7 @@ export interface CrashedContainerBase {
     container_id: string;
     container_name: string;
     crashed_on?: string | null;
+    machine: string;
 }
 
 export interface CrashedContainerLogs extends CrashedContainerBase {

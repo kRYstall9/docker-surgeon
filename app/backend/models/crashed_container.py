@@ -10,6 +10,7 @@ class CrashedContainer(Base):
     container_name = Column(String(100))
     logs = Column(String(5000), nullable=True)
     crashedon = Column(DateTime, nullable=False)
+    machine = Column(String(100), nullable=True)
  
     def __repr__(self):
         return f"<CrashedContainer(name= '{self.container_name}', containerId='{self.container_id}')>"

@@ -19,6 +19,7 @@ WORKDIR /app
 COPY app/ ./app
 COPY main.py ./app/main.py
 COPY pyproject.toml .
+COPY alembic.ini .
 
 RUN rm -rf ./app/dashboard
 

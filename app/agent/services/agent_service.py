@@ -11,33 +11,13 @@ class AgentService:
         self.client = client
         self.logger = logger
 
-    async def stream_events(self) -> AsyncIterator[str]:
-        queue: asyncio.Queue = asyncio.Queue(maxsize=250)
-        loop = asyncio.get_running_loop()
-
-        def _producer():
+    def stream_events(self):
+        for event in self.client.events(decode=True):
             try:
-                for event in self.client.events(decode=True):
-                    if event.get("Type") == "container":
-                        try:
-                            loop.call_soon_threadsafe(
-                                queue.put_nowait,
-                                event
-                            )
-                        except asyncio.QueueFull:
-                            self.logger.warning("Event queue full, dropping event")
+                if event.get("Type") == "container":
+                    yield f"data: {json.dumps(event)}\n\n"
             except Exception as e:
                 self.logger.error(f"Event stream error: {e}")
-            finally:
-                loop.call_soon_threadsafe(queue.put_nowait, None)
-
-        asyncio.get_running_loop().run_in_executor(None, _producer)
-
-        while True:
-            event = await queue.get()
-            if event is None:
-                break
-            yield f"data: {json.dumps(event)}\n\n"
 
     def restart_container(self, id: str | None = None):
         try:

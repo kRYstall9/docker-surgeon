@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 interface DatePickerProps {
-  value: Date | null;
-  onChange: (date: Date | null) => void;
+  value: Date;
+  onChange: (date: Date ) => void;
   label: string;
 }
 
@@ -42,6 +42,7 @@ export function DatePicker({ value, onChange, label }: DatePickerProps) {
 
   function setToday() {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize time to midnight
     onChange(today);
     setMonth(today.getMonth());
     setYear(today.getFullYear());
@@ -78,7 +79,7 @@ export function DatePicker({ value, onChange, label }: DatePickerProps) {
         </label>
         <button
           onClick={() => setOpen((prev) => !prev)}
-          className={`bg-[var(--homepage-bg-color)] text-white px-4 py-2 rounded-md border border-gray-700 hover:bg-gray-700 cursor-pointer`}
+          className={`bg-(--homepage-bg-color) text-white px-4 py-2 rounded-md border border-gray-700 hover:bg-gray-700 cursor-pointer w-28`}
         >
           {value ? value.toLocaleDateString() : "Select date"}
         </button>
@@ -139,7 +140,7 @@ export function DatePicker({ value, onChange, label }: DatePickerProps) {
                 value.getFullYear() === year;
 
               const today = new Date();
-
+              today.setHours(0, 0, 0, 0); // Normalize time to midnight
               const isToday =
                 today.getDate() === day &&
                 today.getMonth() === month &&

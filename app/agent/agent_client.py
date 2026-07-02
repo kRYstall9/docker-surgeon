@@ -2,8 +2,9 @@ import httpx, json, asyncio, logging
 
 
 class AgentClient:
-    def __init__(self, base_url: str, token: str, logger: logging.Logger):
+    def __init__(self, base_url: str, token: str, name:str|None, logger: logging.Logger):
         self.base_url = base_url
+        self.name = name
         self.token = token
         self.verify_ssl: bool = True
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}
@@ -52,12 +53,11 @@ class AgentClient:
         while True:
             try:
                 try:
-                    async with self.http_client.stream("GET", url, headers=self.headers) as response:
+                    async with self.http_client.stream("GET", url, headers=self.headers, timeout=None) as response:
                         response.raise_for_status()
                         self.logger.info(f"[Agent {self.base_url}] Connected to event stream")
                         delay = 2  # Reset delay on successful connection
                         async for line in response.aiter_lines():
-                            self.logger.debug(f"Received line from event stream: {line}")
                             if line and len(line) > 0:
                                 try:
                                     event = json.loads(line[5:].strip())  # Remove "data: " prefix
