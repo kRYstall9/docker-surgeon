@@ -1,3 +1,17 @@
+## [2.1.1](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.0...v2.1.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* replace misspelled table name ([be49417](https://github.com/kRYstall9/docker-surgeon/commit/be494172847bef27fb9dc84cfaafc9ff1291447b))
+
+# [2.1.0](https://github.com/kRYstall9/docker-surgeon/compare/v2.0.0...v2.1.0) (2026-07-02)
+
+
+### Features
+
+* add agent placeholder for notifications ([87a11ee](https://github.com/kRYstall9/docker-surgeon/commit/87a11eef758ebad58d1f32456e38d8944fb0df91))
+
 # [2.0.0](https://github.com/kRYstall9/docker-surgeon/compare/v1.5.0...v2.0.0) (2026-06-13)
 
 

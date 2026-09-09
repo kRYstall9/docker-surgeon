@@ -6,3 +6,4 @@ class ChartStats(BaseModel):
     container_name:str = Field(description="The name of the container")
     crash_count:int = Field(description="The number of times the container has crashed on the specified date")
     crashed_on:date
+    machine:str = Field(description="The machine where the container crashed")

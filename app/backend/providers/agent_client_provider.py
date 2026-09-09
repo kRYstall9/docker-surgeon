@@ -9,7 +9,7 @@ from app.backend.providers import ContainerProvider
 class AgentClientProvider(ContainerProvider):
 
     def __init__(self, client:AgentClient):
-        self.client:AgentClient = client
+        super().__init__(client)
 
     async def get_container(self, id: str):
         container = await self.client.get_container(id)

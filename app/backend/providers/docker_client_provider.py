@@ -1,3 +1,4 @@
+# type: ignore # Solves lint errors on client attribute functions
 
 from typing import AsyncIterator
 
@@ -11,7 +12,11 @@ from app.backend.providers import ContainerProvider
 class DockerClientProvider(ContainerProvider):
 
     def __init__(self, client:DockerClient):
+<<<<<<< HEAD
         self.client:DockerClient = client
+=======
+        super().__init__(client)
+>>>>>>> main
 
     async def get_container(self, id: str):
         container = self.client.containers.get(id)

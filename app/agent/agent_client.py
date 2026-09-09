@@ -2,8 +2,9 @@ import httpx, json, asyncio, logging
 
 
 class AgentClient:
-    def __init__(self, base_url: str, token: str, logger: logging.Logger):
+    def __init__(self, base_url: str, token: str, name:str|None, logger: logging.Logger):
         self.base_url = base_url
+        self.name = name
         self.token = token
         self.verify_ssl: bool = True
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}

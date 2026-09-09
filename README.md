@@ -238,13 +238,14 @@ Expected Syntax: `'["url1", "url2"]'`</br>
 ### NOTIFICATION_TITLE
 The title template for notifications.</br>
 Supports placeholders and emoji.</br>
-Default: `'⚠️ {container_name} crashed'`
+Default: `'⚠️ [{agent_name}] {container_name} crashed'`
 
 Supported placeholders:
 - {container_name}
 - {logs}
 - {exit_code}
 - {n_logs}
+- {agent_name}
 
 ### NOTIFICATION_BODY
 The body template for notifications.</br>

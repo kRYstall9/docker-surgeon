@@ -8,6 +8,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  type ChartOptions,
 } from "chart.js";
 import type { CrashedContainerChartStats } from "../../models/crashedContainer";
 import { Spinner } from "../spinner/spinner";
@@ -15,9 +16,10 @@ import { Spinner } from "../spinner/spinner";
 interface ChartProps {
   loading: boolean;
   stats: CrashedContainerChartStats[];
+  title: string;
 }
 
-export function Chart({ loading, stats }: ChartProps) {
+export function Chart({ loading, stats, title }: ChartProps) {
   ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -28,16 +30,27 @@ export function Chart({ loading, stats }: ChartProps) {
     Legend
   );
 
-  const options = {
+  const options:ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
+    resizeDelay: 250,
+    scales: {
+      y: {
+        beforeSetDimensions: (axis) => {
+          axis.chart.options.scales!.y!.max = Math.max(0, ...safeStats.map((s) => s.crash_count)) + 10;
+        }
+      }
+    },
     plugins: {
       legend: {
         position: "top" as const,
       },
       title: {
         display: true,
-        text: "Crashed Containers Chart",
+        text: title,
+        font: {
+          size: 16
+        }
       },
     },
   };
@@ -48,14 +61,14 @@ export function Chart({ loading, stats }: ChartProps) {
     new Set(
       safeStats.map(
         (s: CrashedContainerChartStats) =>
-          new Date(s.crashed_on!).toISOString().split("T")[0]
+          new Date(s.crashed_on!).toLocaleDateString()
       )
     )
   )
     .sort(
       (a: string, b: string) => new Date(a).getTime() - new Date(b).getTime()
     )
-    .map((dateStr: string) => new Date(dateStr).toISOString().split("T")[0]);
+    .map((dateStr: string) => dateStr);
 
   const containers = Array.from(
     new Set(safeStats.map((s: CrashedContainerChartStats) => s.container_name))
@@ -68,7 +81,7 @@ export function Chart({ loading, stats }: ChartProps) {
       data: labels.map((date) => {
         const stat = safeStats.find(
           (s: CrashedContainerChartStats) =>
-            s.crashed_on === date && s.container_name === name
+            new Date(s.crashed_on!).toLocaleDateString() === new Date(date).toLocaleDateString() && s.container_name === name
         );
         return stat ? stat.crash_count : 0;
       }),
@@ -81,9 +94,9 @@ export function Chart({ loading, stats }: ChartProps) {
   };
 
   return (
-    <div className="h-[calc(100%-4rem)] flex justify-center items-center">
+    <div className="h-full flex justify-center items-center border border-gray-700 rounded-xl">
       {loading && <Spinner/>}
-      {!loading && <Bar options={options} data={data}/>}
+      {!loading && <Bar options={options} data={data} />}
     </div>
   );
 }
