@@ -12,18 +12,14 @@ from app.backend.providers import ContainerProvider
 class DockerClientProvider(ContainerProvider):
 
     def __init__(self, client:DockerClient):
-<<<<<<< HEAD
-        self.client:DockerClient = client
-=======
         super().__init__(client)
->>>>>>> main
 
     async def get_container(self, id: str):
         container = self.client.containers.get(id)
         return ContainerProxy.from_docker(container, self)
 
-    async def list_containers(self):
-        containers = self.client.containers(all=True)
+    async def list_containers(self, all: bool = True, filters: dict = {}):
+        containers = self.client.containers(all=all, filters=filters)
         return list(ContainerProxy.from_docker(c, self) for c in containers)
 
     async def restart_container(self, id: str):

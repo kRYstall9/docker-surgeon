@@ -29,9 +29,9 @@ class AgentService:
         except Exception as e:
             raise RuntimeError(f"Error restarting container: {e}")
 
-    def list_containers(self) -> list[dict]:
+    def list_containers(self, all: bool = True, filters: dict = {}) -> list[dict]:
         try:
-            containers = self.client.containers.list(all=True)
+            containers = self.client.containers.list(all=all, filters=filters)
             return [self._serialize_container(container) for container in containers]
         except Exception as e:
             raise RuntimeError(f"Error listing containers: {e}")

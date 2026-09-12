@@ -42,8 +42,9 @@ class RestartService:
         policy = {} if self.restart_policy == {} else (self.restart_policy["statuses"].get(container.health_status, {}) or self.restart_policy["statuses"].get(container.status, {}))
         
         isContainerUnhealthy: bool = container.status == "running" and container.health_status == "unhealthy"
-        
-        if not policy and not isContainerUnhealthy:
+        isContainerExited: bool = container.status == "exited"
+
+        if not policy and not isContainerUnhealthy and not isContainerExited:
             if check_on_children:
                 return True # Allow children to be restarted if parent is being restarted
             self.logger.debug(f"No policy found. Container {container.name} won't be restarted")
@@ -95,10 +96,10 @@ class RestartService:
     
     async def restart_with_graph(
         self,
-        unhealthy_container: ContainerProxy | None
+        container_to_restart: ContainerProxy | None
     ):
         
-        if unhealthy_container is None:
+        if container_to_restart is None:
             return
         
         containers = await self.client.list_containers()
@@ -112,7 +113,7 @@ class RestartService:
         self.logger.debug(f"Graph: {self.graph}")
         self.logger.debug(f"Sorted container names: {sorted_container_names}")
         
-        to_restart = [unhealthy_container.name]
+        to_restart = [container_to_restart.name]
         relevant = set(to_restart)
 
         for container_name in sorted_container_names:

@@ -33,8 +33,8 @@ class AgentClient:
     async def health_check(self):
         return await self._request("GET", "/health")
 
-    async def list_containers(self):
-        return await self._request("GET", "/containers")
+    async def list_containers(self, all: bool = True, filters: dict = {}):
+        return await self._request("GET", "/containers", params={"all": all, "filters": filters})
 
     async def restart_container(self, id: str | None = None):
         return await self._request("POST", f"/containers/restart", params={"id": id} if id else {})
