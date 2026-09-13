@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.2...v2.1.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* properly parse filters in list_containers ([#17](https://github.com/kRYstall9/docker-surgeon/issues/17)) ([b0ddbbd](https://github.com/kRYstall9/docker-surgeon/commit/b0ddbbd2406f5e9fceea87a951dbca48f0355a9d))
+
 ## [2.1.2](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.1...v2.1.2) (2026-09-13)
 
 
