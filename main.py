@@ -1,5 +1,4 @@
 import os
-
 from app.backend.core import Config
 from app.backend.core import get_bootstrap_logger, get_logger
 from app.backend.core.database import init_db

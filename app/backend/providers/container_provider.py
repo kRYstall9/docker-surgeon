@@ -18,7 +18,7 @@ class ContainerProvider(ABC):
         pass
     
     @abstractmethod
-    async def list_containers(self) -> List[ContainerProxy]:
+    async def list_containers(self, all: bool = True, filters: dict = {}) -> List[ContainerProxy]:
         pass
 
     @abstractmethod

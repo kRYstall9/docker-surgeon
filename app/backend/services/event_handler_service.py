@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from app.backend.providers import ContainerProvider
     from app.backend.services import NotificationService, RestartService
     
-
 class EventHandlerService:
     # Seconds to wait after a container is restarted
     DELAY = 30

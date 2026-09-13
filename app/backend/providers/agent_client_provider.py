@@ -15,8 +15,8 @@ class AgentClientProvider(ContainerProvider):
         container = await self.client.get_container(id)
         return ContainerProxy.from_dict(dict= container, client=self)
 
-    async def list_containers(self):
-        containers = await self.client.list_containers()
+    async def list_containers(self, all: bool = True, filters: dict = {}):
+        containers = await self.client.list_containers(all, filters)
         return list(ContainerProxy.from_dict(c, self) for c in containers)
 
     async def restart_container(self, id: str):

@@ -41,8 +41,8 @@ class AgentServer:
             return {"status": "ok", "host": config.agent_host}
 
         @app.get("/containers", dependencies=[Depends(verify_token)])
-        def list_containers():
-            return self.service.list_containers()
+        def list_containers(all: bool = True, filters: dict = {}):
+            return self.service.list_containers(all, filters)
 
         @app.get('/containers/search', dependencies=[Depends(verify_token)])
         def get_container(id: str | None = None):
