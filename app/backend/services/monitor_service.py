@@ -48,7 +48,7 @@ class MonitorService():
         """
         while True:
             try:
-                exited_containers = await asyncio.to_thread(self.client.list_containers, all=True, filters={"status": "exited"}) or []
+                exited_containers = await self.client.list_containers(all=True, filters={"status": "exited"}) or []
                 for ec in exited_containers:
                     self.logger.debug(f"Container: {ec.name} with status: {ec.status} will be processed soon")
                     event = Event(ec.status, ec.id, ec.name)
