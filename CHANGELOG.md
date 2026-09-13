@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.1...v2.1.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* process exited containers like unhealthy containers ([#16](https://github.com/kRYstall9/docker-surgeon/issues/16)) ([3b2a6ed](https://github.com/kRYstall9/docker-surgeon/commit/3b2a6ed5b815315bd305b957bcae36bce622956b))
+
 ## [2.1.1](https://github.com/kRYstall9/docker-surgeon/compare/v2.1.0...v2.1.1) (2026-07-02)
 
 
