@@ -2,12 +2,12 @@ from __future__ import annotations
 import asyncio
 from logging import Logger
 from typing import TYPE_CHECKING
+from app.backend.events import Event
 
 if TYPE_CHECKING:
     from app.backend.core import Config
     from app.backend.providers import ContainerProvider
     from app.backend.services import EventHandlerService
-    from app.backend.events import Event
 
 class MonitorService():
     ALLOWED_EVENT_TYPE = {"die", "oom", "health_status: unhealthy"}
