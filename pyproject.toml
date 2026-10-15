@@ -132,6 +132,13 @@ prepend_sys_path = [
 [dependency-groups]
 dev = [
     "alembic>=1.18.5",
+    # ──────────────────────
+    # TESTING
+    # ──────────────────────
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.24,<1.0",
+    "pytest-cov>=5.0,<6.0",
+    "mock>=5.0,<6.0",
 ]
 
 # timezone to use when rendering the date within the migration file
