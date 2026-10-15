@@ -5,6 +5,12 @@ from time import time
 from logging import Logger
 from typing import List, TYPE_CHECKING
 
+try:
+    import docker
+    HAS_DOCKER = True
+except ImportError:
+    HAS_DOCKER = False
+
 if TYPE_CHECKING:
     from app.backend.models import ContainerProxy
     from app.backend.providers import ContainerProvider
@@ -153,9 +159,27 @@ class RestartService:
 
                 self.logger.info(f"Restarting container {container.name} ({container.id[:12]})")
                 
+                # Check if this container needs recreation (namespace sharing with parent)
+                needs_recreate = await self._needs_recreate(container)
+                
                 if container.name in parents:
                     timeout = 60
-                    await self.client.restart_container(container_name)
+                    if needs_recreate:
+                        # Must recreate instead of restart for namespace-dependent containers
+                        parent_name = container.labels.get(self.DOCKER_SURGEON_LABEL)
+                        if parent_name:
+                            self.logger.info(f"Recreating container {container.name} due to namespace dependency on {parent_name}")
+                            try:
+                                await self.client.recreate_container(container.id or container.name, parent_name)
+                            except Exception as recreate_err:
+                                self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
+                                raise recreate_err
+                        else:
+                            self.logger.warning(f"Container {container.name} needs recreate but has no parent label, falling back to restart")
+                            await self.client.restart_container(container_name)
+                    else:
+                        await self.client.restart_container(container_name)
+                    
                     self.logger.debug(f"Dependent containers found for {container.name}. Waiting until it is either 'running' or 'healthy'")
                     self.logger.debug(f"Waiting {timeout} seconds before aborting the restart operation")
                     operationInitTime = datetime.now()
@@ -173,7 +197,21 @@ class RestartService:
                     
                     if not parents_of_child:
                         self.logger.info(f"Container {container.name} has no parent dependencies - restarting independently.")
-                        await self.client.restart_container(container.id or container.name)            
+                        if needs_recreate:
+                            parent_name = container.labels.get(self.DOCKER_SURGEON_LABEL)
+                            if parent_name:
+                                self.logger.info(f"Recreating container {container.name} due to namespace dependency")
+                                try:
+                                    await self.client.recreate_container(container.id or container.name, parent_name)
+                                except Exception as recreate_err:
+                                    self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
+                                    raise recreate_err
+                            else:
+                                self.logger.warning(f"Container {container.name} needs recreate but has no parent label, falling back to restart")
+                                await self.client.restart_container(container.id or container.name)
+                        else:
+                            await self.client.restart_container(container.id or container.name)
+                        continue
                     else:
                         parents_of_child.sort(key=lambda p: len(self.graph.get(p, [])), reverse=True)
                         unready_parents = [p for p in parents_of_child if p in to_restart and p not in restarted_parents]
@@ -184,7 +222,19 @@ class RestartService:
                             continue
                             
                         self.logger.info(f"Restarting child {container.name} ({container.id[:12]}) - parent(s) ready")
-                        await self.client.restart_container(container.id or container.name)
+                        if needs_recreate:
+                            parent_name = container.labels.get(self.DOCKER_SURGEON_LABEL)
+                            if parent_name:
+                                self.logger.info(f"Recreating child {container.name} due to namespace dependency on {parent_name}")
+                                try:
+                                    await self.client.recreate_container(container.id or container.name, parent_name)
+                                except Exception as recreate_err:
+                                    self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
+                                    raise recreate_err
+                            else:
+                                await self.client.restart_container(container.id or container.name)
+                        else:
+                            await self.client.restart_container(container.id or container.name)
 
                 self.logger.info(f"Successfully restarted {container.name}")
             except Exception as e:
@@ -198,6 +248,30 @@ class RestartService:
         
 
         self.in_progress.clear()
+
+    async def _needs_recreate(self, container: ContainerProxy) -> bool:
+        """
+        Check if the container uses network_mode:container:, ipc_mode:container:, or pid_mode:container:
+        These containers must be recreated (not restarted) when the parent changes.
+        """
+        if not HAS_DOCKER:
+            self.logger.debug("Docker SDK not available, cannot check for recreate necessity")
+            return False
+            
+        try:
+            api = docker.APIClient()
+            info = api.inspect_container(container.id)
+            hc = info.get("HostConfig", {}) or {}
+            
+            for mode_key in ("NetworkMode", "IpcMode", "PidMode"):
+                mode = hc.get(mode_key, "") or ""
+                if mode.startswith("container:"):
+                    return True
+            
+            return False
+        except Exception as e:
+            self.logger.warning(f"Error checking recreate necessity for {container.name}: {e}")
+            return False
 
     async def _parentSuccessfullyRestarted(
         self,
