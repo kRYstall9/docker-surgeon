@@ -7,7 +7,8 @@ from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.backend.models import ContainerProxy
-    from app.backend.providers import ContainerProvider
+    from app.backend.providers import ContainerProvider, AgentClientProvider
+    from app.backend.schemas.container_history import ContainerHistory
 
 
 class RestartService:
@@ -97,7 +98,8 @@ class RestartService:
 
     async def restart_with_graph(
         self,
-        container_to_restart: ContainerProxy | None
+        container_to_restart: ContainerProxy | None,
+        containers_history: list[ContainerHistory] = []
     ):
 
         if container_to_restart is None:
@@ -154,22 +156,9 @@ class RestartService:
 
                 self.logger.info(f"Restarting container {container.name} ({container.id[:12]})")
 
-                # Check if this container needs recreation (namespace sharing with parent)
-                (needs_recreate, parent_id) = await self.client.needs_to_be_recreated(container.id or container.name)
-
                 if container.name in parents:
                     timeout = 60
-                    if needs_recreate:
-                        # Must recreate instead of restart for namespace-dependent containers
-                        self.logger.info(f"Recreating container {container.name} due to namespace dependency on {parent_id}")
-                        try:
-                            await self.client.recreate_container(container.id or container.name, parent_id)
-                        except Exception as recreate_err:
-                            self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
-                            raise recreate_err
-                    else:
-                        await self.client.restart_container(container_name)
-
+                    await self.handle_restart(container, containers_history)
                     self.logger.debug(f"Dependent containers found for {container.name}. Waiting until it is either 'running' or 'healthy'")
                     self.logger.debug(f"Waiting {timeout} seconds before aborting the restart operation")
                     operationInitTime = datetime.now()
@@ -187,15 +176,7 @@ class RestartService:
 
                     if not parents_of_child:
                         self.logger.info(f"Container {container.name} has no parent dependencies - restarting independently.")
-                        if needs_recreate:
-                            self.logger.info(f"Recreating container {container.name} due to namespace dependency")
-                            try:
-                                await self.client.recreate_container(container.id or container.name, parent_name)
-                            except Exception as recreate_err:
-                                self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
-                                raise recreate_err
-                        else:
-                            await self.client.restart_container(container.id or container.name)
+                        await self.handle_restart(container, containers_history)
                         continue
                     else:
                         parents_of_child.sort(key=lambda p: len(self.graph.get(p, [])), reverse=True)
@@ -207,16 +188,7 @@ class RestartService:
                             continue
 
                         self.logger.info(f"Restarting child {container.name} ({container.id[:12]}) - parent(s) ready")
-                        if needs_recreate:
-                            self.logger.info(f"Recreating child {container.name} due to namespace dependency on {parent_name}")
-                            try:
-                                await self.client.recreate_container(container.id or container.name, parent_name)
-                            except Exception as recreate_err:
-                                self.logger.error(f"Failed to recreate {container_name}: {recreate_err}")
-                                raise recreate_err
-                        else:
-                            await self.client.restart_container(container.id or container.name)
-
+                        await self.handle_restart(container, containers_history)
                 self.logger.info(f"Successfully restarted {container.name}")
             except Exception as e:
                 self.logger.error(f"Failed to restart {container_name}: {e}")
@@ -276,6 +248,7 @@ class RestartService:
         restarted_parents: set,
         max_retries: int = 1,
         delay: int = 10,
+        containers_history: list[ContainerHistory] = []
     ):
         """
         Tries to restart pending children
@@ -301,7 +274,8 @@ class RestartService:
 
                     # container = await self.client.get_container(child_name)
                     self.logger.info(f"Retrying restart for {child_name} — parent(s) ready.")
-                    await self.client.restart_container(child_name)
+                    container = self.client.get_container(child_name)
+                    await self.handle_restart(container, containers_history)
                     self.logger.info(f"Successfully restarted {child_name}")
 
                 except Exception as e:
@@ -317,3 +291,30 @@ class RestartService:
 
         if pending_children:
             self.logger.warning(f"Some child containers could not be restarted after {max_retries} retries: {pending_children}")
+
+    async def handle_restart(self, container: ContainerProxy, containers_history: list[ContainerHistory]):
+        needs_recreate, parent_previous_id = await self.client.needs_to_be_recreated(container.id or container.name) 
+        if needs_recreate:
+            host_name: str = 'server'
+
+            if isinstance(self.client, AgentClientProvider):
+                host_name = self.client.client.name.lower().strip()
+
+            self.logger.debug(f"Host name: {host_name}")
+            container_history = next((ct for ct in containers_history if ct.container_previous_id == parent_previous_id and ct.host_name == host_name), None)
+            if container_history is None:
+                self.logger.warn(f"Unable to recreate {container.name} because there's no history of its parent")
+                return
+
+            self.logger.debug(f"Parent found in history. Parent name: {container_history.container_name}")
+            current_parent_id = container_history.container_current_id
+            self.logger.info(f"Recreating container {container.name}")
+            try:
+                await self.client.recreate_container(container.id or container.name, current_parent_id)
+            except Exception as e:
+                self.logger.error(f"An error occured while recreating the container {container.name}. Error: {str(e)}")
+        else:
+            self.logger.debug(f"Restarting container {container.name}")
+            self.client.restart_container(container.id or container.name)
+
+
