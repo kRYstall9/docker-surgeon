@@ -91,6 +91,17 @@ class AgentServer:
                 media_type="text/event-stream"
             )
 
+        @app.post("/containers/{container_id}/shouldBeRecreated", dependencies=[Depends(verify_token)])
+        async def needs_recreate(container_id: str):
+            if not container_id:
+                raise HTTPException(status_code=400, detail="Either name or id must be provided")
+
+            try:
+                return self.service.needs_to_be_recreated(container_id)
+            except Exception as e:
+                self.logger.error(f"An error occured while checking if the container {container_id} needs to be recreated. Error: {str(e)}")
+                return (False, None)
+
     def run(self):
         if self.config.agent_host is None or self.config.agent_port is None:
             self.logger.warning("Unable to start Agent server. Agent Host and Agent Port not specified")

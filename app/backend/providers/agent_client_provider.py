@@ -8,12 +8,12 @@ from app.backend.providers import ContainerProvider
 
 class AgentClientProvider(ContainerProvider):
 
-    def __init__(self, client:AgentClient):
+    def __init__(self, client: AgentClient):
         super().__init__(client)
 
     async def get_container(self, id: str):
         container = await self.client.get_container(id)
-        return ContainerProxy.from_dict(dict= container, client=self)
+        return ContainerProxy.from_dict(dict=container, client=self)
 
     async def list_containers(self, all: bool = True, filters: dict = {}):
         containers = await self.client.list_containers(all, filters)
@@ -21,13 +21,13 @@ class AgentClientProvider(ContainerProvider):
 
     async def restart_container(self, id: str):
         await self.client.restart_container(id)
-    
+
     async def get_logs(self, id: str, logs_amount: int):
         return await self.client.get_container_logs(id, logs_amount)
 
     async def recreate_container(self, id: str, parent_name: str) -> str:
         return await self.client.recreate_container(id, parent_name)
-    
+
     async def stream_events(self) -> AsyncIterator[Event]:
         async for raw in self.client.stream_events():
             id = ''
@@ -38,7 +38,10 @@ class AgentClientProvider(ContainerProvider):
                 id = raw['Actor']['ID']
 
             yield Event(
-                type = raw.get("Action", ''),
-                id = id,
-                name = raw.get("Actor", {}).get("Attributes", {}).get("name", "")
+                type=raw.get("Action", ''),
+                id=id,
+                name=raw.get("Actor", {}).get("Attributes", {}).get("name", "")
             )
+
+    async def needs_to_be_recreated(self, container: str) -> (bool, str | None):
+        return await self.client.needs_to_be_recreated(container)

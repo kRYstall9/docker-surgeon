@@ -10,10 +10,10 @@ class AgentClient:
         self.headers = {"Authorization": f"Bearer {token}"} if token else {}
         self.logger = logger
         self.http_client = httpx.AsyncClient(verify=self.verify_ssl)
-    
+
     async def __aenter__(self):
         return self
-    
+
     async def __aexit__(self, exc_type, exc, tb):
         await self.http_client.aclose()
 
@@ -35,7 +35,7 @@ class AgentClient:
 
     async def list_containers(self, all: bool = True, filters: dict = {}):
         return await self._request("GET", "/containers", params={"all": all, "filters": json.dumps(filters)})
-    
+
     async def restart_container(self, id: str | None = None):
         return await self._request("POST", f"/containers/restart", params={"id": id} if id else {})
 
@@ -52,12 +52,12 @@ class AgentClient:
             json={"parent_name": parent_name}
         )
         return data.get("new_container_id", "")
-    
+
     async def stream_events(self):
         url = f"{self.base_url}/events/stream"
         delay = 2
         max_delay = 60
-        
+
         while True:
             try:
                 try:
@@ -82,3 +82,6 @@ class AgentClient:
                 self.logger.warning(f"[Agent {self.base_url}] Stream error: {e}. Reconnecting in {delay}s")
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, max_delay)
+
+    async def needs_to_be_recreated(self, container_id: str) -> (bool, str | None):
+        return await self._request("POST", f"/containers/{container_id}/shouldBeRecreated")

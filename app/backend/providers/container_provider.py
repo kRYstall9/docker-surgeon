@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from app.agent.agent_client import AgentClient
     from docker import DockerClient
 
+
 class ContainerProvider(ABC):
 
     def __init__(self, client: DockerClient | AgentClient):
@@ -16,7 +17,7 @@ class ContainerProvider(ABC):
     @abstractmethod
     async def get_container(self, id: str) -> ContainerProxy | None:
         pass
-    
+
     @abstractmethod
     async def list_containers(self, all: bool = True, filters: dict = {}) -> List[ContainerProxy]:
         pass
@@ -30,9 +31,13 @@ class ContainerProvider(ABC):
         pass
 
     @abstractmethod
-    async def get_logs(self, id: str, logs_amount:int) -> str:
+    async def get_logs(self, id: str, logs_amount: int) -> str:
         pass
 
     @abstractmethod
-    def stream_events(self) -> AsyncIterator[Event] :
+    def stream_events(self) -> AsyncIterator[Event]:
+        pass
+
+    @abstractmethod
+    def needs_to_be_recreated(self, container: str) -> (bool, str | None):
         pass

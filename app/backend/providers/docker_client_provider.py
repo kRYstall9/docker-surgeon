@@ -3,8 +3,6 @@
 from __future__ import annotations
 from logging import Logger
 from typing import AsyncIterator, Dict, List, Any
-
-import docker
 from docker import DockerClient
 
 from app.backend.events import Event
@@ -29,10 +27,10 @@ class DockerClientProvider(ContainerProvider):
     async def restart_container(self, id: str):
         container = self.client.containers.get(id)
         return container.restart()
-    
+
     async def get_logs(self, id: str, logs_amount: int):
-        return self.client.containers.get(id).logs(tail = logs_amount).decode('utf8', errors='ignore')
-    
+        return self.client.containers.get(id).logs(tail=logs_amount).decode('utf8',errors='ignore')
+
     async def stream_events(self) -> AsyncIterator[Event]:
         for raw in self.client.events(decode=True):
             id = ''
@@ -43,47 +41,47 @@ class DockerClientProvider(ContainerProvider):
                 id = raw['Actor']['ID']
 
             yield Event(
-                type = raw.get("Action", ''),
-                id = id,
+                type=raw.get("Action", ''),
+                id=id,
                 name=raw.get("Actor", {}).get("Attributes", {}).get("name", '')
             )
 
     async def recreate_container(self, child_id: str, parent_name: str) -> str:
         """Stop, remove, and recreate a container that shares a namespace with its parent.
-        
+
         Resolves parent_name to the current parent container ID, updates namespace
         references, then recreates the child container.
-        
+
         Returns the new container ID.
         """
         # Step 1: Resolve parent name to current ID
         parent_container = await self.get_container(parent_name)
         if parent_container is None:
             raise Exception(f"Parent container '{parent_name}' not found")
-        
+
         current_parent_id = parent_container.id
-        
+
         # Step 2: Inspect child container to extract config
-        api = docker.APIClient()
+        api = self.client.api
         container_info = api.inspect_container(child_id)
-        
+
         host_config: Dict[str, Any] = container_info.get("HostConfig", {}) or {}
         config: Dict[str, Any] = container_info.get("Config", {}) or {}
-        
+
         child_name = container_info.get("Name", child_id)
-        
+
         # Step 3: Update namespace mode references
         for mode_key in ("NetworkMode", "IpcMode", "PidMode"):
             mode_value = host_config.get(mode_key, "") or ""
             if mode_value.startswith("container:"):
                 # Replace old parent reference with new one
                 host_config[mode_key] = f"container:{current_parent_id}"
-        
+
         # Step 4: Stop the child container
         child_docker_container = self.client.containers.get(child_id)
         child_docker_container.stop()
         child_docker_container.remove(force=True)
-        
+
         # Step 5: Prepare container creation config
         container_kwargs: Dict[str, Any] = {
             # Config fields
@@ -135,16 +133,32 @@ class DockerClientProvider(ContainerProvider):
                 "auto_remove": host_config.get("AutoRemove", False),
             },
         }
-        
+
         # Step 6: Create new container
         new_container = api.create_container(**container_kwargs)
-        
+
         # Step 7: Start the new container
         api.start(container=new_container["Id"])
-        
+
         new_container_id = new_container["Id"]
-        
+
         return new_container_id
+
+    async def needs_to_be_recreated(self, container: str) -> (bool, str | None):
+        try:
+            container_config = self.client.api.inspect_container(container)
+            self.logger.debug(f"Container {container} config: {container_config}")
+            hc = container_config.get("HostConfig", {}) or {}
+
+            for mode_key in ("NetworkMode", "IpcMode", "PidMode"):
+                mode = hc.get(mode_key, "") or ""
+                if mode.startswith("container:"):
+                    return (True, mode.split('container:')[1])
+
+            return (False, None)
+        except Exception as e:
+            self.logger.error(str(e))
+            return (False, None)
 
     @staticmethod
     def _parse_labels(labels_raw: Any) -> Dict[str, str]:

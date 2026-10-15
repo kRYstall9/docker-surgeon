@@ -37,14 +37,14 @@ class AgentService:
             return [self._serialize_container(container) for container in containers]
         except Exception as e:
             raise RuntimeError(f"Error listing containers: {e}")
-        
+
     def get_container(self, id: str | None = None) -> dict:
         try:
             if id:
                 container = self.client.containers.get(id)
             else:
                 raise ValueError("Either name or id must be provided")
-            
+
             return self._serialize_container(container)
         except Exception as e:
             raise RuntimeError(f"Error getting container: {e}")
@@ -53,7 +53,7 @@ class AgentService:
         try:
             if not id:
                 raise ValueError("Either name or id must be provided")
-            
+
             container = self.client.containers.get(id)
             logs = container.logs(tail=tail).decode('utf-8', errors='ignore')
             return logs
@@ -62,7 +62,7 @@ class AgentService:
 
     def recreate_container(self, id: str, parent_name: str) -> dict:
         """Stop, remove, and recreate a container that shares a namespace with its parent.
-        
+
         Returns a dict with 'new_container_id' on success.
         Raises RuntimeError if parent not found.
         """
@@ -73,22 +73,22 @@ class AgentService:
                 current_parent_id = parent_container.id
             except Exception as e:
                 raise RuntimeError(f"Parent container '{parent_name}' not found: {e}")
-            
+
             # Inspect child container
-            api = docker.APIClient()
+            api = self.client.api
             container_info = api.inspect_container(id)
-            
+
             host_config: Dict[str, Any] = container_info.get("HostConfig", {}) or {}
             config: Dict[str, Any] = container_info.get("Config", {}) or {}
-            
+
             child_name = container_info.get("Name", id)
-            
+
             # Update namespace mode references
             for mode_key in ("NetworkMode", "IpcMode", "PidMode"):
                 mode_value = host_config.get(mode_key, "") or ""
                 if mode_value.startswith("container:"):
                     host_config[mode_key] = f"container:{current_parent_id}"
-            
+
             # Stop child
             try:
                 child_docker = self.client.containers.get(id)
@@ -96,13 +96,13 @@ class AgentService:
                 child_docker.remove(force=True)
             except Exception as e:
                 self.logger.warning(f"Error stopping/removing child container: {e}")
-            
+
             # Prepare create kwargs
             def parse_labels(l):
                 if not l or not isinstance(l, dict):
                     return {}
                 return {k: v for k, v in l.items() if v is not None}
-            
+
             def parse_env(env_list):
                 if not env_list:
                     return {}
@@ -114,7 +114,7 @@ class AgentService:
                     else:
                         result[item] = ""
                 return result
-            
+
             containers_kwargs = {
                 "image": config.get("Image"),
                 "name": child_name.lstrip("/"),
@@ -157,22 +157,38 @@ class AgentService:
                     "auto_remove": host_config.get("AutoRemove", False),
                 },
             }
-            
+
             # Create new container
             new_container = api.create_container(**containers_kwargs)
             new_container_id = new_container["Id"]
-            
+
             # Start new container
             api.start(container=new_container_id)
-            
+
             return {"new_container_id": new_container_id}
-            
+
         except Exception as e:
             raise RuntimeError(f"Error recreating container: {e}")
-        
+
+    def needs_to_be_recreated(self, container_id: str) -> (bool, str | None):
+        try:
+            container_config = self.client.api.inspect_container(container_id)
+            self.logger.debug(f"Container {container_id} config: {container_config}")
+            hc = container_config.get("HostConfig", {}) or {}
+
+            for mode_key in ("NetworkMode", "IpcMode", "PidMode"):
+                mode = hc.get(mode_key, "") or ""
+                if mode.startswith("container:"):
+                    return (True, mode.split('container:')[1])
+
+            return (False, None)
+        except Exception as e:
+            self.logger.error(str(e))
+            return (False, None)
+
     def _serialize_container(self, container: Container) -> dict:
         attrs = container.attrs
-        
+
         return {
                 "id": container.id,
                 "name": container.name,
@@ -183,4 +199,3 @@ class AgentService:
                 "exit_code": attrs.get("State", {}).get("ExitCode"),
                 "status": attrs.get("State", {}).get("Status", "unknown")
             }
-
