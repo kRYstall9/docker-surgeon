@@ -44,6 +44,14 @@ class AgentClient:
 
     async def get_container_logs(self, id: str | None = None, tail: int = 10):
         return await self._request("GET", "/containers/logs", params={"id": id, "tail": tail} if id else {})
+
+    async def recreate_container(self, id: str, parent_name: str) -> str:
+        data = await self._request(
+            "POST",
+            f"/containers/{id}/recreate",
+            json={"parent_name": parent_name}
+        )
+        return data.get("new_container_id", "")
     
     async def stream_events(self):
         url = f"{self.base_url}/events/stream"

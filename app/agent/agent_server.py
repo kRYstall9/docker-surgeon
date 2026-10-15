@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import docker
 import uvicorn
@@ -69,6 +69,19 @@ class AgentServer:
             except APIError as e:
                 raise HTTPException(status_code=500, detail=str(e))
             
+
+        @app.post("/containers/{container_id}/recreate", dependencies=[Depends(verify_token)])
+        async def recreate_container(container_id: str, request: Request):
+            body = await request.json()
+            parent_name = body.get("parent_name")
+            if not parent_name:
+                raise HTTPException(status_code=400, detail="parent_name must be provided")
+            try:
+                return self.service.recreate_container(container_id, parent_name)
+            except NotFound:
+                raise HTTPException(status_code=404, detail="Container not found")
+            except RuntimeError as e:
+                raise HTTPException(status_code=500, detail=str(e))
 
         @app.get("/events/stream", dependencies=[Depends(verify_token)])
         async def event_stream():

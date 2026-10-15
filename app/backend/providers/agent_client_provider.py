@@ -24,6 +24,9 @@ class AgentClientProvider(ContainerProvider):
     
     async def get_logs(self, id: str, logs_amount: int):
         return await self.client.get_container_logs(id, logs_amount)
+
+    async def recreate_container(self, id: str, parent_name: str) -> str:
+        return await self.client.recreate_container(id, parent_name)
     
     async def stream_events(self) -> AsyncIterator[Event]:
         async for raw in self.client.stream_events():
