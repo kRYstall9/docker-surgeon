@@ -26,6 +26,10 @@ class ContainerProvider(ABC):
         pass
 
     @abstractmethod
+    async def recreate_container(self, id: str, parent_name: str) -> str:
+        pass
+
+    @abstractmethod
     async def get_logs(self, id: str, logs_amount:int) -> str:
         pass
 
