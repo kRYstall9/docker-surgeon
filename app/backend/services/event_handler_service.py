@@ -7,6 +7,7 @@ from app.backend.repositories.crashed_container_repository import CrashedContain
 from app.backend.schemas.crashed_container_schema import CrashedContainerBase
 from app.backend.schemas.container_history import ContainerHistory
 from app.backend.providers import AgentClientProvider
+from pprint import pformat
 
 if TYPE_CHECKING:
     from app.backend.core import Config
@@ -61,7 +62,7 @@ class EventHandlerService:
                 # If the agent name is not available, the event happened on the server, so we set the machine to 'Server'. Otherwise, we set it to the agent name.
                 machine = agent_name if agent_name else 'Server'
 
-                ## Add record to the CrashedContainer table
+                # Add record to the CrashedContainer table
                 crashed_container = CrashedContainerBase(container_id=container.id, container_name=container.name, logs=logs, machine=machine)
                 CrashedContainerRepository.add_crashed_container(crashed_container, self.logger)
 
@@ -77,10 +78,12 @@ class EventHandlerService:
         host_name: str = 'server'
 
         if isinstance(self.client, AgentClientProvider):
-            self.logger.debug(f"Client is of type {AgentClientProvider.__name__}")
             host_name = self.client.client.name.lower().strip()
-        
+
+        self.logger.debug(f"Client is of type {type(self.client)}")
+
         self.logger.debug(f"Host name: {host_name}")
+        self.logger.debug("Container history:\n%s", pformat(self.history))
         container_history = next((ct for ct in self.history if ct.container_name == container.name and ct.host_name == host_name), None)
         if container_history is not None:
             self.logger.debug(f"Container {container.name} was found in history")
@@ -88,11 +91,12 @@ class EventHandlerService:
             current_id = container.id
 
             if history_current_id.lower().strip() != current_id.lower().strip():
-                self.logger.debug(f"Updating current id of container {container.name}")
+                self.logger.debug(f"Updating current id of container {container.name}. Old Current id: {container_history.container_current_id}. Old previous id: {container_history.container_previous_id}")
                 container_history.container_previous_id = container_history.container_current_id
                 container_history.container_current_id = container.id
+                self.logger.debug(f"Updated current id of container {container.name}. New Current id: {container_history.container_current_id}. New previous id: {container_history.container_previous_id}")
         else:
             self.logger.debug(f"Adding container {container.name} to the history")
             container_history = ContainerHistory(host_name=host_name, container_name=container.name, container_current_id=container.id)
-            self.logger.debug(f"Container {container.name} history: {container_history}")
+            self.logger.debug("Container {container.name} history:\n%s", pformat(container_history))
             self.history.append(container_history)

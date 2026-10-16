@@ -5,6 +5,7 @@ from time import time
 from logging import Logger
 from typing import List, TYPE_CHECKING
 from app.backend.providers import AgentClientProvider
+from pprint import pformat
 
 if TYPE_CHECKING:
     from app.backend.models import ContainerProxy
@@ -296,12 +297,15 @@ class RestartService:
     async def handle_restart(self, container: ContainerProxy, containers_history: list[ContainerHistory]):
         needs_recreate, parent_previous_id = await self.client.needs_to_be_recreated(container.id or container.name) 
         if needs_recreate:
+            self.logger.debug(f"Container {container.name} needs to be recreated")
+            self.logger.debug(f"Parent previous id: {parent_previous_id}")
             host_name: str = 'server'
 
             if isinstance(self.client, AgentClientProvider):
                 host_name = self.client.client.name.lower().strip()
 
             self.logger.debug(f"Host name: {host_name}")
+            self.logger.debug("Containers history:\n%s", {pformat(containers_history)})
             container_history = next((ct for ct in containers_history if ct.container_previous_id == parent_previous_id and ct.host_name == host_name), None)
             if container_history is None:
                 self.logger.warn(f"Unable to recreate {container.name} because there's no history of its parent")
