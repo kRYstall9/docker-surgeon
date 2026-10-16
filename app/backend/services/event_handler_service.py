@@ -53,7 +53,7 @@ class EventHandlerService:
 
             if await self.restart_service.can_be_restarted(container):
                 logs = await self.client.get_logs(container.id or container.name, self.config.logs_amount)
-                await self.restart_service.restart_with_graph(container)
+                await self.restart_service.restart_with_graph(container, self.history)
 
                 agent_name: str | None = self.client.client.name if type(self.client.client) is AgentClient else None
                 await self.notification_service.notify(container.name, logs, container.exit_code or '', agent_name)
@@ -77,16 +77,22 @@ class EventHandlerService:
         host_name: str = 'server'
 
         if isinstance(self.client, AgentClientProvider):
+            self.logger.debug(f"Client is of type {AgentClientProvider.__name__}")
             host_name = self.client.client.name.lower().strip()
-
+        
+        self.logger.debug(f"Host name: {host_name}")
         container_history = next((ct for ct in self.history if ct.container_name == container.name and ct.host_name == host_name), None)
         if container_history is not None:
+            self.logger.debug(f"Container {container.name} was found in history")
             history_current_id = container_history.container_current_id
             current_id = container.id
 
             if history_current_id.lower().strip() != current_id.lower().strip():
+                self.logger.debug(f"Updating current id of container {container.name}")
                 container_history.container_previous_id = container_history.container_current_id
                 container_history.container_current_id = container.id
         else:
+            self.logger.debug(f"Adding container {container.name} to the history")
             container_history = ContainerHistory(host_name=host_name, container_name=container.name, container_current_id=container.id)
+            self.logger.debug(f"Container {container.name} history: {container_history}")
             self.history.append(container_history)
