@@ -3,14 +3,21 @@ import asyncio
 from logging import Logger
 from typing import TYPE_CHECKING
 from app.backend.events import Event
+from app.backend.schemas.container_history import ContainerHistory
+from app.backend.providers import AgentClientProvider
+from pprint import pformat
+
 
 if TYPE_CHECKING:
     from app.backend.core import Config
     from app.backend.providers import ContainerProvider
     from app.backend.services import EventHandlerService
+    from app.backend.models import ContainerProxy
+
 
 class MonitorService():
     ALLOWED_EVENT_TYPE = {"die", "oom", "health_status: unhealthy"}
+
     def __init__(self, client: ContainerProvider, config: Config, handler: EventHandlerService, logger: Logger):
         self.client = client
         self.config = config
@@ -18,20 +25,21 @@ class MonitorService():
         self.handler = handler
         self.queue = asyncio.Queue(maxsize=500)
         self.workers: list[asyncio.Task] = []
+        self.history: list[ContainerHistory] = []
 
-    
     async def monitor(self):
 
         self.workers = [
             asyncio.create_task(self._worker(f"worker-{i}"))
             for i in range(5)
         ]
-        
+
         await asyncio.gather(
             self.monitor_events(),
-            self.monitor_exited_containers()
+            self.monitor_exited_containers(),
+            self.manage_containers_history()
         )
-    
+
     async def monitor_exited_containers(self):
         """Periodically monitor exited containers and enqueue them for processing.
         Docker events cannot reliably detect containers that have already
@@ -56,7 +64,7 @@ class MonitorService():
             except Exception as e:
                 self.logger.error(f"An error occured while retrieving exited containers. Error: {e}")
             finally:
-                #This check will be performed every 30~ seconds
+                # This check will be performed every 30~ seconds
                 await asyncio.sleep(30)
 
     async def monitor_events(self):
@@ -76,23 +84,23 @@ class MonitorService():
                 if not any(event.type.startswith(x) for x in self.ALLOWED_EVENT_TYPE):
                     self.logger.debug(f"Skipping event {event.type} for container {event.container_name}")
                     continue
-                
+
                 if self.queue.full():
                     self.logger.warning(f"Event queue full, dropping event {event.type} for container {event.container_name}")
                     continue
-                
+
                 self.logger.debug(f"Inserting event {event.type} for container {event.container_name} into the event queue")
                 await self.queue.put(event)
             except Exception as e:
                 self.logger.error(f"An error occured while reading an event. Error: {e}")
-                
-    async def _worker(self, name:str):
+
+    async def _worker(self, name: str):
         while True:
             event = await self.queue.get()
 
             if event is None:
                 break
-            
+
             try:
                 await self.handler.handle(event)
             except Exception as e:
@@ -106,3 +114,39 @@ class MonitorService():
 
         for w in self.workers:
             w.cancel()
+
+    async def manage_containers_history(self):
+        while True:
+            try:
+                containers: list[ContainerProxy] = await self.client.list_containers()
+                host_name: str = 'server'
+
+                if isinstance(self.client, AgentClientProvider):
+                    host_name = self.client.client.name.lower().strip()
+
+                self.logger.debug(f"Instance of client: {type(self.client).__name__}")
+                self.logger.debug(f"Host name: {host_name}")
+                for container in containers:
+                    self.logger.debug(f"Checking container {container.name} for host: {host_name}")
+                    container_history = next((ct for ct in self.history if ct.container_name == container.name and ct.host_name == host_name), None)
+                    if container_history is not None:
+                        self.logger.debug(f"Container {container.name} found in history for host: {host_name}")
+
+                        history_current_id = container_history.container_current_id.lower().strip()
+                        self.logger.debug(f"History current id: {history_current_id}. Current id: {container.id}")
+
+                        if history_current_id != container.id.lower().strip():
+                            self.logger.info(f"Updating {container.name} id for Host: {host_name}")
+                            self.logger.info("%s history:\n%s", container.name, pformat(container_history, indent=2))
+                            container_history.container_previous_id = history_current_id
+                            container_history.container_current_id = container.id.lower().strip()
+                            self.logger.info("%s updated history:\n%s", container.name, pformat(container_history, indent=2))
+                    else:
+                        self.logger.info(f"Container {container.name} not found in history for host: {host_name}. Proceeding to add it to the history")
+                        container_history: ContainerHistory = ContainerHistory(host_name=host_name, container_name=container.name, container_current_id=container.id.lower().strip())
+                        self.history.append(container_history)
+                        self.logger.info("Container %s added to history.\n%s", container.name, pformat(container_history, indent=2))
+            except Exception as e:
+                self.logger.error(str(e))
+            finally:
+                await asyncio.sleep(10)
