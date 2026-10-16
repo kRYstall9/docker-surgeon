@@ -14,7 +14,8 @@ if TYPE_CHECKING:
     from app.backend.providers import ContainerProvider
     from app.backend.services import NotificationService, RestartService
     from app.backend.models import ContainerProxy
-    
+
+
 class EventHandlerService:
     # Seconds to wait after a container is restarted
     DELAY = 30
@@ -33,7 +34,7 @@ class EventHandlerService:
         self.notification_service = notification_service
         self.logger = logger
         self.cooldown = {}
-        self.history = list[ContainerHistory]
+        self.history: list[ContainerHistory] = []
 
     async def handle(self, event: Event):
         try:
