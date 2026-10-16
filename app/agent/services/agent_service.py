@@ -6,6 +6,7 @@ from logging import Logger
 from typing import Any, AsyncIterator, Dict
 from docker import DockerClient
 from docker.models.containers import Container
+from pprint import pformat
 
 
 class AgentService:
@@ -115,11 +116,12 @@ class AgentService:
                         result[item] = ""
                 return result
 
-            containers_kwargs = {
+            container_kwargs = {
                 "image": config.get("Image"),
                 "name": child_name.lstrip("/"),
                 "command": config.get("Cmd"),
                 "entrypoint": config.get("Entrypoint"),
+                "stdin_open": config.get("OpenStdin", False),
                 "working_dir": config.get("WorkingDir") or None,
                 "tty": config.get("Tty", False),
                 "user": config.get("User") or None,
@@ -127,38 +129,44 @@ class AgentService:
                 "environment": parse_env(config.get("Env", [])),
                 "healthcheck": config.get("Healthcheck"),
                 "volumes": list(config.get("Volumes", {}).keys()) if isinstance(config.get("Volumes"), dict) else (config.get("Volumes", []) or []),
-                "host_config": {
-                    "network_mode": host_config.get("NetworkMode"),
-                    "ipc_mode": host_config.get("IpcMode"),
-                    "pid_mode": host_config.get("PidMode"),
-                    "binds": host_config.get("Binds"),
-                    "port_bindings": host_config.get("PortBindings"),
-                    "restart_policy": host_config.get("RestartPolicy"),
-                    "volumes_from": host_config.get("VolumesFrom"),
-                    "dns": host_config.get("Dns"),
-                    "extra_hosts": host_config.get("ExtraHosts"),
-                    "log_config": host_config.get("LogConfig"),
-                    "shm_size": host_config.get("ShmSize"),
-                    "privileged": host_config.get("Privileged", False),
-                    "read_only": host_config.get("ReadonlyRootfs", False),
-                    "mem_limit": host_config.get("Memory"),
-                    "cpu_set": host_config.get("CpusetCpus"),
-                    "cpu_set_mems": host_config.get("CpusetMems"),
-                    "cpu_period": host_config.get("CpuPeriod"),
-                    "cpu_quota": host_config.get("CpuQuota"),
-                    "cpu_shares": host_config.get("CpuShares"),
-                    "cap_add": host_config.get("CapAdd"),
-                    "cap_drop": host_config.get("CapDrop"),
-                    "auto_remove": host_config.get("AutoRemove", False),
-                },
             }
 
-            # Create new container
-            new_container = api.create_container(**containers_kwargs)
-            new_container_id = new_container["Id"]
+            host_config_kwargs = {
+                "network_mode": host_config.get("NetworkMode"),
+                "ipc_mode": host_config.get("IpcMode"),
+                "pid_mode": host_config.get("PidMode"),
+                "binds": host_config.get("Binds"),
+                "port_bindings": host_config.get("PortBindings"),
+                "restart_policy": host_config.get("RestartPolicy"),
+                "volumes_from": host_config.get("VolumesFrom"),
+                "dns": host_config.get("Dns"),
+                "extra_hosts": host_config.get("ExtraHosts"),
+                "log_config": host_config.get("LogConfig"),
+                "shm_size": host_config.get("ShmSize"),
+                "privileged": host_config.get("Privileged", False),
+                "read_only": host_config.get("ReadonlyRootfs", False),
+                "mem_limit": host_config.get("Memory"),
+                "cpu_set": host_config.get("CpusetCpus"),
+                "cpu_set_mems": host_config.get("CpusetMems"),
+                "cpu_period": host_config.get("CpuPeriod"),
+                "cpu_quota": host_config.get("CpuQuota"),
+                "cpu_shares": host_config.get("CpuShares"),
+                "cap_add": host_config.get("CapAdd"),
+                "cap_drop": host_config.get("CapDrop"),
+                "auto_remove": host_config.get("AutoRemove", False),
+            }
 
-            # Start new container
-            api.start(container=new_container_id)
+            docker_host_config = api.create_host_config(**host_config_kwargs)
+
+            container_kwargs['host_config'] = docker_host_config
+
+            self.logger.debug("New container config:\n%s", pformat(container_kwargs))
+
+            new_container = api.create_container(**container_kwargs)
+
+            api.start(container=new_container["Id"])
+
+            new_container_id = new_container["Id"]
 
             return {"new_container_id": new_container_id}
 
