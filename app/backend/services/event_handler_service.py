@@ -6,11 +6,12 @@ from app.agent import AgentClient
 from app.backend.repositories.crashed_container_repository import CrashedContainerRepository
 from app.backend.schemas.crashed_container_schema import CrashedContainerBase
 from app.backend.schemas.container_history import ContainerHistory
+from app.backend.providers import AgentClientProvider
 
 if TYPE_CHECKING:
     from app.backend.core import Config
     from app.backend.events import Event
-    from app.backend.providers import ContainerProvider, AgentClientProvider
+    from app.backend.providers import ContainerProvider
     from app.backend.services import NotificationService, RestartService
     from app.backend.models import ContainerProxy
     

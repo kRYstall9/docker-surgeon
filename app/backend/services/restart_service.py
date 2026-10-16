@@ -4,10 +4,11 @@ from datetime import datetime
 from time import time
 from logging import Logger
 from typing import List, TYPE_CHECKING
+from app.backend.providers import AgentClientProvider
 
 if TYPE_CHECKING:
     from app.backend.models import ContainerProxy
-    from app.backend.providers import ContainerProvider, AgentClientProvider
+    from app.backend.providers import ContainerProvider
     from app.backend.schemas.container_history import ContainerHistory
 
 
