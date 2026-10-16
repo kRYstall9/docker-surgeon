@@ -102,7 +102,7 @@ class MonitorService():
                 break
 
             try:
-                await self.handler.handle(event)
+                await self.handler.handle(event, self.history)
             except Exception as e:
                 self.logger.error(f"An error occured for worker {name}: {e}")
             finally:
