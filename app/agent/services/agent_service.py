@@ -1,9 +1,7 @@
 from __future__ import annotations
-import asyncio
-import docker
 import json
 from logging import Logger
-from typing import Any, AsyncIterator, Dict
+from typing import Any, Dict
 from docker import DockerClient
 from docker.models.containers import Container
 from pprint import pformat
@@ -26,7 +24,7 @@ class AgentService:
         try:
             if not id:
                 raise ValueError("Either name or id must be provided")
-            
+
             container = self.client.containers.get(id)
             container.restart()
         except Exception as e:

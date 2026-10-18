@@ -320,6 +320,6 @@ class RestartService:
                 self.logger.error(f"An error occured while recreating the container {container.name}. Error: {str(e)}")
         else:
             self.logger.debug(f"Restarting container {container.name}")
-            self.client.restart_container(container.id or container.name)
+            await self.client.restart_container(container.id or container.name)
 
 
