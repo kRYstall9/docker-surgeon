@@ -91,23 +91,36 @@ class DockerClientProvider(ContainerProvider):
             "healthcheck": config.get("Healthcheck"),
             "ports": self._parse_ports(config.get("ExposedPorts", {})),
             "volumes": list(config.get("Volumes", {}).keys()) if isinstance(config.get("Volumes"), dict) else (config.get("Volumes", []) or []),
+            # Host-independent configuration fields
+            "hostname": config.get("Hostname") or None,
+            "domainname": config.get("Domainname") or None,
+            "stop_signal": config.get("StopSignal"),
+            "stop_timeout": host_config.get("StopTimeout"),
+            "runtime": host_config.get("Runtime"),
+            "mac_address": host_config.get("MacAddress"),
         }
 
         host_config_kwargs = {
             "network_mode": host_config.get("NetworkMode"),
             "ipc_mode": host_config.get("IpcMode"),
             "pid_mode": host_config.get("PidMode"),
-            "binds": host_config.get("Binds"),
+            "binds": host_config.get("Binds") if not container_info.get("Mounts") else None,
+            "mounts": container_info.get("Mounts"),
             "port_bindings": host_config.get("PortBindings"),
             "restart_policy": host_config.get("RestartPolicy"),
             "volumes_from": host_config.get("VolumesFrom"),
             "dns": host_config.get("Dns"),
+            "dns_opt": host_config.get("DnsOpt"),
+            "dns_search": host_config.get("DnsSearch"),
             "extra_hosts": host_config.get("ExtraHosts"),
             "log_config": host_config.get("LogConfig"),
             "shm_size": host_config.get("ShmSize"),
             "privileged": host_config.get("Privileged", False),
             "read_only": host_config.get("ReadonlyRootfs", False),
             "mem_limit": host_config.get("Memory"),
+            "mem_reservation": host_config.get("MemoryReservation"),
+            "memswap_limit": host_config.get("MemorySwap"),
+            "mem_swappiness": host_config.get("MemorySwappiness"),
             "cpuset_cpus": host_config.get("CpusetCpus"),
             "cpuset_mems": host_config.get("CpusetMems"),
             "cpu_period": host_config.get("CpuPeriod"),
@@ -116,9 +129,65 @@ class DockerClientProvider(ContainerProvider):
             "cap_add": host_config.get("CapAdd"),
             "cap_drop": host_config.get("CapDrop"),
             "auto_remove": host_config.get("AutoRemove", False),
+            "devices": host_config.get("Devices"),
+            "device_requests": host_config.get("DeviceRequests"),
+            "device_cgroup_rules": host_config.get("DeviceCgroupRules"),
+            "security_opt": host_config.get("SecurityOpt"),
+            "sysctls": host_config.get("Sysctls"),
+            "group_add": host_config.get("GroupAdd"),
+            "init": host_config.get("Init"),
+            "oom_kill_disable": host_config.get("OomKillDisable"),
+            "oom_score_adj": host_config.get("OomScoreAdj"),
+            "pids_limit": host_config.get("PidsLimit"),
+            "userns_mode": host_config.get("UsernsMode"),
+            "uts_mode": host_config.get("UtsMode"),
+            "isolation": host_config.get("Isolation"),
+            "storage_opt": host_config.get("StorageOpt"),
+            "publish_all_ports": host_config.get("PublishAllPorts"),
+            "cgroup_parent": host_config.get("CgroupParent"),
+            "tmpfs": host_config.get("Tmpfs"),
         }
 
         docker_host_config = api.create_host_config(**host_config_kwargs)
+
+        # --- Handle custom network configurations ---
+        network_settings = container_info.get("NetworkSettings", {})
+        networks = network_settings.get("Networks", {})
+        if networks:
+            ep_configs: Dict[str, Dict[str, Any]] = {}
+            for net_name, net_cfg in networks.items():
+                # Skip container namespace sharing mode and default networks
+                if net_name.startswith("container:"):
+                    continue
+                if net_name in ("bridge", "none"):
+                    continue
+                # Collect only non-None endpoint settings
+                ipam = net_cfg.get("IPAMConfig", {}) or {}
+                endpoints: Dict[str, Any] = {}
+                if ipam.get("IPv4Address"):
+                    endpoints["ipv4_address"] = ipam.get("IPv4Address")
+                if ipam.get("IPv6Address"):
+                    endpoints["ipv6_address"] = ipam.get("IPv6Address")
+                aliases = net_cfg.get("Aliases")
+                if aliases:
+                    endpoints["aliases"] = aliases
+                links = net_cfg.get("Links")
+                if links:
+                    endpoints["links"] = links
+                link_local_ips = net_cfg.get("LinkLocalIPs")
+                if link_local_ips:
+                    endpoints["link_local_ips"] = link_local_ips
+                driver_opt = net_cfg.get("DriverOpts")
+                if driver_opt:
+                    endpoints["driver_opt"] = driver_opt
+                if endpoints:
+                    ep_configs[net_name] = endpoints
+            if ep_configs:
+                networking_config = {
+                    name: api.create_endpoint_config(**opts)
+                    for name, opts in ep_configs.items()
+                }
+                container_kwargs["networking_config"] = api.create_networking_config(networking_config)
 
         container_kwargs['host_config'] = docker_host_config
 

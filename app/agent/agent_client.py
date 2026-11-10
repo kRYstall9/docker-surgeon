@@ -1,8 +1,13 @@
-import httpx, json, asyncio, logging
+import httpx
+import json
+import asyncio
+import logging
 
 
 class AgentClient:
-    def __init__(self, base_url: str, token: str, name:str|None, logger: logging.Logger):
+    def __init__(
+        self, base_url: str, token: str, name: str | None, logger: logging.Logger
+    ):
         self.base_url = base_url
         self.name = name
         self.token = token
@@ -20,11 +25,15 @@ class AgentClient:
     async def _request(self, method: str, endpoint: str, **kwargs) -> dict:
         url = f"{self.base_url}{endpoint}"
         try:
-            response = await self.http_client.request(method, url, headers=self.headers, **kwargs)
+            response = await self.http_client.request(
+                method, url, headers=self.headers, **kwargs
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"HTTP error {e.response.status_code} for {method} {url}: {e.response.text}")
+            self.logger.error(
+                f"HTTP error {e.response.status_code} for {method} {url}: {e.response.text}"
+            )
             raise
         except Exception as e:
             self.logger.error(f"Error during {method} {url}: {str(e)}")
@@ -34,22 +43,28 @@ class AgentClient:
         return await self._request("GET", "/health")
 
     async def list_containers(self, all: bool = True, filters: dict = {}):
-        return await self._request("GET", "/containers", params={"all": all, "filters": json.dumps(filters)})
+        return await self._request(
+            "GET", "/containers", params={"all": all, "filters": json.dumps(filters)}
+        )
 
     async def restart_container(self, id: str | None = None):
-        return await self._request("POST", f"/containers/restart", params={"id": id} if id else {})
+        return await self._request(
+            "POST", "/containers/restart", params={"id": id} if id else {}
+        )
 
     async def get_container(self, id: str | None = None):
-        return await self._request("GET", "/containers/search", params={"id": id} if id else {})
+        return await self._request(
+            "GET", "/containers/search", params={"id": id} if id else {}
+        )
 
     async def get_container_logs(self, id: str | None = None, tail: int = 10):
-        return await self._request("GET", "/containers/logs", params={"id": id, "tail": tail} if id else {})
+        return await self._request(
+            "GET", "/containers/logs", params={"id": id, "tail": tail} if id else {}
+        )
 
     async def recreate_container(self, id: str, parent_name: str) -> str:
         data = await self._request(
-            "POST",
-            f"/containers/{id}/recreate",
-            json={"parent_name": parent_name}
+            "POST", f"/containers/{id}/recreate", json={"parent_name": parent_name}
         )
         return data.get("new_container_id", "")
 
@@ -61,27 +76,41 @@ class AgentClient:
         while True:
             try:
                 try:
-                    async with self.http_client.stream("GET", url, headers=self.headers, timeout=None) as response:
+                    async with self.http_client.stream(
+                        "GET", url, headers=self.headers, timeout=None
+                    ) as response:
                         response.raise_for_status()
-                        self.logger.info(f"[Agent {self.base_url}] Connected to event stream")
+                        self.logger.info(
+                            f"[Agent {self.base_url}] Connected to event stream"
+                        )
                         delay = 2  # Reset delay on successful connection
                         async for line in response.aiter_lines():
                             if line and len(line) > 0:
                                 try:
-                                    event = json.loads(line[5:].strip())  # Remove "data: " prefix
+                                    event = json.loads(
+                                        line[5:].strip()
+                                    )  # Remove "data: " prefix
                                     yield event
                                 except json.JSONDecodeError as e:
-                                    self.logger.error(f"Failed to decode event: {str(e)}")
+                                    self.logger.error(
+                                        f"Failed to decode event: {str(e)}"
+                                    )
                 except httpx.HTTPStatusError as e:
-                    self.logger.error(f"HTTP error {e.response.status_code} for streaming events: {e.response.text}")
+                    self.logger.error(
+                        f"HTTP error {e.response.status_code} for streaming events: {e.response.text}"
+                    )
                     raise
                 except Exception as e:
                     self.logger.error(f"Error during streaming events: {str(e)}")
                     raise
             except Exception as e:
-                self.logger.warning(f"[Agent {self.base_url}] Stream error: {e}. Reconnecting in {delay}s")
+                self.logger.warning(
+                    f"[Agent {self.base_url}] Stream error: {e}. Reconnecting in {delay}s"
+                )
                 await asyncio.sleep(delay)
                 delay = min(delay * 2, max_delay)
 
     async def needs_to_be_recreated(self, container_id: str) -> (bool, str | None):
-        return await self._request("POST", f"/containers/{container_id}/shouldBeRecreated")
+        return await self._request(
+            "POST", f"/containers/{container_id}/shouldBeRecreated"
+        )
